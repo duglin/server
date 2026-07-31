@@ -1390,3 +1390,201 @@ func TestValidChars(t *testing.T) {
 		XEqual(t, test.input, got, test.result)
 	}
 }
+
+func TestModelAddAttrNames(t *testing.T) {
+	type test struct {
+		name string
+		msg  string
+	}
+
+	sixty := "a23456789012345678901234567890123456789012345678901234567890"
+
+	tests := []test{
+		{sixty + "12", ""},
+		{sixty + "123", ""},
+		{"_123", ""},
+		{"_12_3", ""},
+		{"_123_", ""},
+		{"_123_", `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: attribute \"_123_\" already exists.",
+  "subject": "/",
+  "args": {
+    "error_detail": "attribute \"_123_\" already exists"
+  },
+  "source": "xxx"
+}`},
+		{"_", ""},
+		{"__", ""},
+		{"", `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"\" for \"/\" is not valid: \"\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/",
+  "args": {
+    "error_detail": "\"\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": ""
+  },
+  "source": "xxx"
+}`},
+		{sixty + "1234", `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"a234567890123456789012345678901234567890123456789012345678901234\" for \"/\" is not valid: \"a234567890123456789012345678901234567890123456789012345678901234\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/",
+  "args": {
+    "error_detail": "\"a234567890123456789012345678901234567890123456789012345678901234\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "a234567890123456789012345678901234567890123456789012345678901234"
+  },
+  "source": "xxx"
+}`},
+		{"1234", `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"1234\" for \"/\" is not valid: \"1234\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/",
+  "args": {
+    "error_detail": "\"1234\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "1234"
+  },
+  "source": "xxx"
+}`},
+		{"A", `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"A\" for \"/\" is not valid: \"A\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/",
+  "args": {
+    "error_detail": "\"A\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "A"
+  },
+  "source": "xxx"
+}`},
+		{"aA", `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"aA\" for \"/\" is not valid: \"aA\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/",
+  "args": {
+    "error_detail": "\"aA\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "aA"
+  },
+  "source": "xxx"
+}`},
+		{"_A", `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"_A\" for \"/\" is not valid: \"_A\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/",
+  "args": {
+    "error_detail": "\"_A\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "_A"
+  },
+  "source": "xxx"
+}`},
+		{"_ _", `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"_ _\" for \"/\" is not valid: \"_ _\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/",
+  "args": {
+    "error_detail": "\"_ _\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "_ _"
+  },
+  "source": "xxx"
+}`},
+		{"#abc", `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"#abc\" for \"/\" is not valid: \"#abc\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/",
+  "args": {
+    "error_detail": "\"#abc\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "#abc"
+  },
+  "source": "xxx"
+}`},
+	}
+
+	m := &Model{}
+	for _, test := range tests {
+		t.Logf("test: %q", test.name)
+		_, xErr := m.AddAttr(test.name, STRING)
+
+		got := ""
+		if xErr != nil {
+			got = xErr.String()
+		}
+		XEqual(t, test.name, got, test.msg)
+	}
+}
+
+// TestModelIfValuesValuesCase verifies that ifvalues keys that only differ
+// by case are rejected, both at the top level and nested inside a
+// SiblingAttribute's own ifvalues. Pure model-verification error - no
+// DB/Registry needed.
+func TestModelIfValuesValuesCase(t *testing.T) {
+	m := &Model{}
+	_, err := m.AddAttribute(&Attribute{
+		Name: "mystring",
+		Type: STRING,
+		IfValues: IfValues{
+			"foo": &IfValue{},
+			"FoO": &IfValue{},
+		},
+	})
+	XCheckErrFold(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"mystring\" has ifvalues that only differ by case (\"FoO\").",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"mystring\" has ifvalues that only differ by case (\"FoO\")"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttribute(&Attribute{
+		Name: "mystring",
+		Type: STRING,
+		IfValues: IfValues{
+			"foo": &IfValue{
+				SiblingAttributes: Attributes{
+					"file": &Attribute{
+						Name: "file",
+						Type: STRING,
+					},
+					"object": &Attribute{
+						Name: "object",
+						Type: OBJECT,
+						Attributes: Attributes{
+							"objstr": &Attribute{
+								Name: "objstr",
+								Type: STRING,
+								IfValues: IfValues{
+									"objval": {
+										SiblingAttributes: Attributes{
+											"objint": &Attribute{
+												Name: "objint",
+												Type: INTEGER,
+											},
+										},
+									},
+									"objVAL": {
+										SiblingAttributes: Attributes{
+											"objint": &Attribute{
+												Name: "objint",
+												Type: INTEGER,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	XCheckErrFold(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"mystring.ifvalues.foo.object.objstr\" has ifvalues that only differ by case (\"objVAL\").",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"mystring.ifvalues.foo.object.objstr\" has ifvalues that only differ by case (\"objVAL\")"
+  },
+  "source": "xxx"
+}`)
+}

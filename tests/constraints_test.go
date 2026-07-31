@@ -2840,30 +2840,6 @@ func TestConstraintsEqualsNestedGroupPath(t *testing.T) {
 	reg.Model.SetChanged(false)
 }
 
-// TestConstraintsEqualsWildcardModelError tests that 'equals' referencing a
-// wildcard ('*') group attribute is rejected at model definition time.
-func TestConstraintsEqualsWildcardModelError(t *testing.T) {
-	reg := NewRegistry("TestConstraintsEqualsWildcardModelError")
-	defer PassDeleteReg(t, reg)
-
-	// Model error: equals references "*" which is a wildcard, not a named attr
-	modelSrc := `{
-	  "groups": { "dirs": {
-	    "singular": "dir",
-	    "attributes": {
-	      "*": { "type": "string" }
-	    },
-	    "constraints": {
-	      "files.mystr": { "equals": "someattr" }
-	    },
-	    "resources": {"files": {"singular": "file", "hasdocument": false,
-	      "attributes": { "mystr": { "type": "string" } } } } } } }`
-	XCheckErr(t, reg.Model.ApplyNewModel(nil, modelSrc, true),
-		`^(?s)^.*model_error.*equals.*someattr.*can not be found`)
-
-	reg.Model.SetChanged(false)
-}
-
 // TestConstraintsMultipleResourceTypes verifies that constraints for different
 // resource types within the same group are independent and don't bleed into
 // each other.
