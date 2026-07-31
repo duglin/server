@@ -869,3 +869,36 @@ func TestConstraintsModelEqualsPathThroughIfvaluesOnlyAttr(t *testing.T) {
 	XCheckErr(t, m.Verify(),
 		`^(?s)^.*model_error.*equals.*gfoo.*can not be found`)
 }
+
+// TestConstraintsDeepNestedPathStopsAtNonObject verifies that a
+// deeply-nested constraint path referencing an attribute beyond a
+// non-object (scalar) attribute is rejected. Pure model-verification
+// error - no DB/Registry needed.
+func TestConstraintsDeepNestedPathStopsAtNonObject(t *testing.T) {
+	// Model error: path stops at non-object
+	modelSrcBadPath := `{
+	  "groups": { "dirs": {
+	    "singular": "dir",
+	    "constraints": {
+	      "files.a.b.c.d": { "enum": ["x","y"] }
+	    },
+	    "resources": {"files": {"singular": "file", "hasdocument": false,
+	      "attributes": {
+	        "a": {
+	          "type": "object",
+	          "attributes": {
+	            "b": {
+	              "type": "object",
+	              "attributes": {
+	                "c": { "type": "string" }
+	              }
+	            }
+	          }
+	        }
+	      } } } } } }`
+
+	m, xErr := ParseModel([]byte(modelSrcBadPath), nil)
+	XNoErr(t, xErr)
+	XCheckErr(t, m.Verify(),
+		`^(?s)^.*model_error.*a.b.c.d.*c.*scalar`)
+}

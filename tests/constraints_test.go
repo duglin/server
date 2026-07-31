@@ -2069,28 +2069,9 @@ func TestConstraintsEqualsNestedGroupPath(t *testing.T) {
 	    "files":{"f1":{"mystr":"anything"}}}}}`, 200,
 		`^(?s)^.*"mystr": "anything"`)
 
-	// Model error: equals path traverses through ifvalues-only attribute
-	// (gfoo is defined only via ifvalues siblingattributes, not static attrs)
-	modelSrcBad := `{
-	  "groups": { "dirs": {
-	    "singular": "dir",
-	    "attributes": {
-	      "gobj": {
-	        "type": "object",
-	        "ifvalues": {
-	          "special": {
-	            "siblingattributes": { "gfoo": { "type": "string" } }
-	          }
-	        }
-	      }
-	    },
-	    "constraints": {
-	      "files.mystr": { "equals": "gfoo" }
-	    },
-	    "resources": {"files": {"singular": "file", "hasdocument": false,
-	      "attributes": { "mystr": { "type": "string" } } } } } } }`
-	XCheckErr(t, reg.Model.ApplyNewModel(nil, modelSrcBad, true),
-		`^(?s)^.*model_error.*equals.*gfoo.*can not be found`)
+	// Model error case (equals path through an ifvalues-only attribute)
+	// moved to registry.TestConstraintsModelEqualsPathThroughIfvaluesOnlyAttr
+	// (pure model verification, no DB needed).
 
 	reg.Model.SetChanged(false)
 }
@@ -2267,29 +2248,9 @@ func TestConstraintsDeepNestedPath(t *testing.T) {
 	  "dirs":{"d1":{"files":{"f1":{"a":{"b":{"c":"z"}}}}}}}`, 400,
 		`^(?s)^.*invalid_attribute`)
 
-	// Model error: path stops at non-object
-	modelSrcBadPath := `{
-	  "groups": { "dirs": {
-	    "singular": "dir",
-	    "constraints": {
-	      "files.a.b.c.d": { "enum": ["x","y"] }
-	    },
-	    "resources": {"files": {"singular": "file", "hasdocument": false,
-	      "attributes": {
-	        "a": {
-	          "type": "object",
-	          "attributes": {
-	            "b": {
-	              "type": "object",
-	              "attributes": {
-	                "c": { "type": "string" }
-	              }
-	            }
-	          }
-	        }
-	      } } } } } }`
-	XCheckErr(t, reg.Model.ApplyNewModel(nil, modelSrcBadPath, true),
-		`^(?s)^.*model_error.*a.b.c.d.*c.*scalar`)
+	// Model error case (path stops at non-object attribute) moved to
+	// registry.TestConstraintsDeepNestedPathStopsAtNonObject (pure model
+	// verification, no DB needed).
 
 	reg.Model.SetChanged(false)
 }
