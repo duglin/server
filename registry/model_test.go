@@ -1761,3 +1761,212 @@ func TestModelAddAttrXIDTargets(t *testing.T) {
 	_, err = m.AddAttrXID("regptr_res_ver2", "/dirs/files[/versions]")
 	XNoErr(t, err)
 }
+
+// TestModelNameCharSet verifies attribute name character-set
+// validation, including the "extended" NameCharSet override (allowing
+// e.g. trailing "-" or embedded spaces via map-key rules) both at the
+// top level and nested inside object/ifvalues attributes. Pure
+// in-memory Model validation - no DB/Registry needed.
+func TestModelNameCharSet(t *testing.T) {
+	m := &Model{}
+
+	_, err := m.AddAttribute(&Attribute{
+		Name: "obj1",
+		Type: OBJECT,
+		Attributes: map[string]*Attribute{
+			"attr1-": {
+				Name: "attr1-",
+				Type: STRING,
+			},
+		},
+	})
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"attr1-\" for \"/model\" is not valid: \"attr1-\" in \"obj1\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"attr1-\" in \"obj1\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "attr1-"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttribute(&Attribute{
+		Name:        "obj1",
+		Type:        OBJECT,
+		NameCharSet: "sTRICt", // weird casing
+		Attributes: map[string]*Attribute{
+			"attr1-": {
+				Name: "attr1-",
+				Type: STRING,
+			},
+		},
+	})
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"attr1-\" for \"/model\" is not valid: \"attr1-\" in \"obj1\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"attr1-\" in \"obj1\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "attr1-"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttribute(&Attribute{
+		Name: "obj1",
+		Type: OBJECT,
+		Attributes: map[string]*Attribute{
+			"attr1": {
+				Name: "attr1",
+				Type: STRING,
+				IfValues: IfValues{
+					"a1": &IfValue{
+						SiblingAttributes: Attributes{
+							"another-": &Attribute{
+								Name: "another-",
+								Type: STRING,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"another-\" for \"/model\" is not valid: \"another-\" in \"obj1.attr1.ifvalues.a1\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"another-\" in \"obj1.attr1.ifvalues.a1\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "another-"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttribute(&Attribute{
+		Name:        "obj1",
+		Type:        OBJECT,
+		NameCharSet: "extended",
+		Attributes: map[string]*Attribute{
+			"attr space": {
+				Name: "attr space",
+				Type: STRING,
+			},
+		},
+	})
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: map key name \"attr space\" in \"obj1\" must match: ^[a-z0-9][a-z0-9_.:\\-]{0,62}$.",
+  "subject": "/model",
+  "args": {
+    "error_detail": "map key name \"attr space\" in \"obj1\" must match: ^[a-z0-9][a-z0-9_.:\\-]{0,62}$"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttribute(&Attribute{
+		Name: "astring",
+		Type: STRING,
+		IfValues: IfValues{
+			"a1": &IfValue{
+				SiblingAttributes: Attributes{
+					"bad-": &Attribute{
+						Type: STRING,
+					},
+				},
+			},
+		},
+	})
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"bad-\" for \"/model\" is not valid: \"bad-\" in \"astring.ifvalues.a1\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"bad-\" in \"astring.ifvalues.a1\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "bad-"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttribute(&Attribute{
+		Name: "astring",
+		Type: OBJECT,
+		Attributes: map[string]*Attribute{
+			"attr1": {
+				Type: STRING,
+				IfValues: IfValues{
+					"a1": &IfValue{
+						SiblingAttributes: Attributes{
+							"bad-": &Attribute{
+								Type: STRING,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#invalid_attribute",
+  "title": "The attribute \"bad-\" for \"/model\" is not valid: \"bad-\" in \"astring.attr1.ifvalues.a1\" must match: ^[a-z_][a-z_0-9]{0,62}$.",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"bad-\" in \"astring.attr1.ifvalues.a1\" must match: ^[a-z_][a-z_0-9]{0,62}$",
+    "name": "bad-"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttribute(&Attribute{
+		Name:        "astring",
+		Type:        OBJECT,
+		NameCharSet: "extended",
+		Attributes: map[string]*Attribute{
+			"attr1": {
+				Type: STRING,
+				IfValues: IfValues{
+					"a1-": &IfValue{
+						SiblingAttributes: Attributes{
+							"good-": &Attribute{
+								Type: STRING,
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	XNoErr(t, err)
+
+	_, err = m.AddAttribute(&Attribute{
+		Name:        "obj1",
+		Type:        OBJECT,
+		NameCharSet: "extended",
+		Attributes: map[string]*Attribute{
+			"attr1-": {
+				Name: "attr1-",
+				Type: STRING,
+				IfValues: IfValues{
+					"a1": &IfValue{
+						SiblingAttributes: Attributes{
+							"another-": &Attribute{
+								Name: "another-",
+								Type: STRING,
+							},
+						},
+					},
+				},
+			},
+			"attr1-id": {
+				Name: "attr1-id",
+				Type: STRING,
+			},
+			"*": {
+				Name: "*",
+				Type: INTEGER,
+			},
+		},
+	})
+	XNoErr(t, err)
+}
