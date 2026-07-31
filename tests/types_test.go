@@ -91,173 +91,22 @@ func TestTypesBasic(t *testing.T) {
 
 	XNoErr(t, reg.SaveModel(true))
 
-	/* no longer required
-	_, err = reg.Model.AddAttrXID("regptr_group", "")
-	XCheckErr(t, err, `"model.regptr_group" must have a "target" value since "type" is "xid"`)
-	*/
-
-	_, err = reg.Model.AddAttrXID("regptr_group", "qwe")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2872"
-}`)
-
-	_, err = reg.Model.AddAttrXID("regptr_group", "qwe/")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2872"
-}`)
-
-	_, err = reg.Model.AddAttrXID("regptr_group", " /")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2872"
-}`)
-
-	_, err = reg.Model.AddAttrXID("regptr_reg", "/")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_reg\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_reg\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2872"
-}`)
-
-	_, err = reg.Model.AddAttrXID("regptr_group", "/xxxs")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_group\" has an unknown Group type: \"xxxs\".",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_group\" has an unknown Group type: \"xxxs\""
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2881"
-}`)
-
-	_, err = reg.Model.AddAttrXID("regptr_group", "/xxxs/")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2872"
-}`)
-
+	// AddAttrXID target-string validation (form checks, unknown
+	// Group/Resource type checks, etc) is covered separately in
+	// registry.TestModelAddAttrXIDTargets - pure in-memory Model
+	// validation, no DB/Registry needed there. Here we just need the
+	// attrs themselves defined (valid targets) since they're used
+	// below by the entity-level Set/Save checks.
 	_, err = reg.Model.AddAttrXID("regptr_group", "/dirs")
-	XCheckErr(t, err, ``)
-
-	_, err = reg.Model.AddAttrXID("regptr_res", "/dirs/?")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_res\" has an unknown Resource type: \"?\".",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_res\" has an unknown Resource type: \"?\""
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2888"
-}`)
-
-	_, err = reg.Model.AddAttrXID("regptr_res", "/dirs/file")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_res\" has an unknown Resource type: \"file\".",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_res\" has an unknown Resource type: \"file\""
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2888"
-}`)
-
+	XNoErr(t, err)
 	_, err = reg.Model.AddAttrXID("regptr_res", "/dirs/files")
 	XNoErr(t, err)
-	XNoErr(t, reg.SaveModel(true))
-
-	_, err = reg.Model.AddAttrXID("regptr_ver", "/dirs/files/")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2872"
-}`)
-
-	_, err = reg.Model.AddAttrXID("regptr_ver", "/dirs/files/asd")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2872"
-}`)
-
-	_, err = reg.Model.AddAttrXID("regptr_ver", "/dirs/files/asd?")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2872"
-}`)
-
 	_, err = reg.Model.AddAttrXID("regptr_ver", "/dirs/files/versions")
 	XNoErr(t, err)
-	err = reg.SaveModel(true)
-	XCheckErr(t, err, ``)
-
-	_, err = reg.Model.AddAttrXID("regptr_res_ver", "/dirs/files/versions?asd")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_res_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_res_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2872"
-}`)
-
-	_, err = reg.Model.AddAttrXID("regptr_res_ver", "/dirs/files/versions?/")
-	XCheckErr(t, err, `{
-  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
-  "title": "There was an error in the model definition provided: \"regptr_res_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
-  "subject": "/model",
-  "args": {
-    "error_detail": "\"regptr_res_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
-  },
-  "source": "e4e59b8a76c4:registry:shared_model:2872"
-}`)
-
 	_, err = reg.Model.AddAttrXID("regptr_res_ver", "/dirs/files[/versions]")
 	XNoErr(t, err)
-
 	_, err = reg.Model.AddAttrXID("regptr_res_ver2", "/dirs/files[/versions]")
 	XNoErr(t, err)
-
-	// Model is fully defined, so save it
 	XNoErr(t, reg.SaveModel(true))
 
 	dir, _ := reg.AddGroup("dirs", "d1")

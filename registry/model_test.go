@@ -1588,3 +1588,176 @@ func TestModelIfValuesValuesCase(t *testing.T) {
   "source": "xxx"
 }`)
 }
+
+// TestModelAddAttrXIDTargets verifies the AddAttrXID target-string
+// validation rules (form, unknown Group/Resource type, etc). Pure
+// in-memory Model validation - no DB/Registry needed. Only needs a
+// minimal "dirs"/"files" Group/Resource skeleton (not the full set of
+// scalar attributes TestTypesBasic in tests/ defines, since those are
+// unrelated to xid-target validation).
+func TestModelAddAttrXIDTargets(t *testing.T) {
+	m := &Model{}
+	gm, err := m.AddGroupModel("dirs", "dir")
+	XNoErr(t, err)
+
+	_, err = m.AddAttrXID("regptr_group", "qwe")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_group", "qwe/")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_group", " /")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_reg", "/")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_reg\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_reg\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_group", "/xxxs")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_group\" has an unknown Group type: \"xxxs\".",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_group\" has an unknown Group type: \"xxxs\""
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_group", "/xxxs/")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_group\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_group", "/dirs")
+	XCheckErr(t, err, ``)
+
+	_, err = m.AddAttrXID("regptr_res", "/dirs/?")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_res\" has an unknown Resource type: \"?\".",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_res\" has an unknown Resource type: \"?\""
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_res", "/dirs/file")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_res\" has an unknown Resource type: \"file\".",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_res\" has an unknown Resource type: \"file\""
+  },
+  "source": "xxx"
+}`)
+
+	_, err = gm.AddResourceModel("files", "file", 0, true, true)
+	XNoErr(t, err)
+
+	_, err = m.AddAttrXID("regptr_res", "/dirs/files")
+	XNoErr(t, err)
+
+	_, err = m.AddAttrXID("regptr_ver", "/dirs/files/")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_ver", "/dirs/files/asd")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_ver", "/dirs/files/asd?")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_ver", "/dirs/files/versions")
+	XNoErr(t, err)
+
+	_, err = m.AddAttrXID("regptr_res_ver", "/dirs/files/versions?asd")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_res_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_res_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_res_ver", "/dirs/files/versions?/")
+	XCheckErr(t, err, `{
+  "type": "https://github.com/xregistry/spec/blob/main/core/spec.md#model_error",
+  "title": "There was an error in the model definition provided: \"regptr_res_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]].",
+  "subject": "/model",
+  "args": {
+    "error_detail": "\"regptr_res_ver\" \"target\" must be of the form: /GROUPS[/RESOURCES[/versions | \\[/versions\\] ]]"
+  },
+  "source": "xxx"
+}`)
+
+	_, err = m.AddAttrXID("regptr_res_ver", "/dirs/files[/versions]")
+	XNoErr(t, err)
+
+	_, err = m.AddAttrXID("regptr_res_ver2", "/dirs/files[/versions]")
+	XNoErr(t, err)
+}
