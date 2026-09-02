@@ -47,7 +47,7 @@ cmds: .cmds
 
 cmds-all: xr-all xrserver-all
 
-docs: docs/xr_help.md docs/xrserver_help.md
+docs: docs/cli/xr.md docs/cli/xrserver.md
 
 errors: .errors
 .errors: misc/checkerrors common/error.go
@@ -159,21 +159,21 @@ registry/ui/xreg/index.html: cmds/xrserver/test-reg.json xrserver
 		download . --nodiff=* -c -u '$$HOST/ui/xreg'
 	@pkill -f xrserver.*8181
 
-docs/xr_help.md docs/xrserver_help.md: xr xrserver
+docs/cli/xr.md docs/cli/xrserver.md: xr xrserver
 	@echo
 	@echo "# Regenerating the help text for the docs"
 	@(echo '```yaml' && ./xr --help-all && echo '```') | \
 	awk '/<!-- XR HELP START -->/{p=1; print; next} \
 	  /<!-- XR HELP END -->/{p=0; \
 	  while((getline line < "/dev/stdin") > 0) \
-	    print line; print; next} !p&&p!=1{print}' docs/xr_help.md > tmp.md
-	@mv tmp.md docs/xr_help.md
+	    print line; print; next} !p&&p!=1{print}' docs/cli/xr.md > tmp.md
+	@mv tmp.md docs/cli/xr.md
 	@(echo '```yaml' && ./xrserver --help-all && echo '```') | \
 	awk '/<!-- XRSERVER HELP START -->/{p=1; print; next} \
 	  /<!-- XRSERVER HELP END -->/{p=0; \
 	  while((getline line < "/dev/stdin") > 0) \
-	    print line; print; next} !p&&p!=1{print}' docs/xrserver_help.md > tmp.md
-	@mv tmp.md docs/xrserver_help.md
+	    print line; print; next} !p&&p!=1{print}' docs/cli/xrserver.md > tmp.md
+	@mv tmp.md docs/cli/xrserver.md
 
 xr-all: .xr-all
 .xr-all: xr

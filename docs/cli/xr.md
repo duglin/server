@@ -1,8 +1,12 @@
 # xr (xRegistry CLI)
 
-##  `xr` Command Summary
+The `xr` CLI lets you interact with an xRegistry server: query, create,
+update, delete, import/export, and check spec conformance. See
+[Getting Started](../getting-started.md) if you haven't used it yet, or
+[Concepts](../concepts.md) for the vocabulary (XIDs, `$details`, etc.) used
+below.
 
-The `xr` CLI lets you interact with an xRegistry server:
+##  `xr` Command Summary
 
 <!-- XR HELP START -->
 ```yaml
@@ -397,46 +401,31 @@ xr upsert XID
 ## Example Commands
 
 ```yaml
-# Create a new endpoint group
-xr create /endpoints/test1 -d '{"name": "Test Endpoint"}'
+# Create a new entity
+xr create /dirs/d1/files/f1 -d '{"name": "My File"}'
 
-# Get all endpoints
-xr get /endpoints -o human
+# Get all files in a group, as a table
+xr get /dirs/d1/files -o table
 
-# Update an entity
-xr update /endpoints/test1 -d '{"description": "Updated description"}'
-xr set /endpoints/test1 description="Updated description" name="Test1"
+# Update an entity - by full document, or by individual attribute(s)
+xr update /dirs/d1/files/f1 -d '{"description": "Updated description"}'
+xr update /dirs/d1/files/f1 --set description="Updated description" --set name=File1
 
 # Delete an entity
-xr delete /endpoints/test1
+xr delete /dirs/d1/files/f1
 
 # Import registry contents from a file
 xr import / -d @myregistry.json
 
 # Download a registry to static files
 xr download ./export-dir
+
+# Check a server's spec conformance (see docs/conformance.md)
+xr conform localhost:8080
 ```
 
-## `xr` Command Environment Variables
+## `xr` Environment Variables & Config File
 
-The following environment variables can be set in the environment in which
-the `xr` command is executed:
-
-| Env Var    | Value |
-| ---------- | ----- |
-| XR_SERVER  | Location of the xRegistry API server (localhost:8080*) |
-
-## `xr` Configuration File
-
-- Found in `$HOME/.xrconfig`
-- Syntax:
-```
-# Comment
-NAME: VALUE
-```
-
-- Supported configuration names:
-  - `server.url` - location of the xRegistry server
-  - `header.KEY` - an HTTP header (KEY) to add to all xRegistry client
-                   requests. For example, for authentication headers
+Covered in the [Configuration Reference](../configuration.md), including
+`XR_SERVER` and the `$HOME/.xr` config file (`server.url`, `header.KEY`).
 

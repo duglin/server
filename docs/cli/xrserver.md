@@ -1,8 +1,10 @@
 # xrserver (xRegistry Server)
 
-## `xrserver` Command Summary
+`xrserver` boots and manages the xRegistry API server and its backing MySQL
+database. See [Installation & Admin Guide](../installation.md) for
+deployment options (Docker, Kubernetes, external MySQL, TLS/auth).
 
-The `xrserver` CLI boots and manages the API server and backing database:
+## `xrserver` Command Summary
 
 <!-- XRSERVER HELP START -->
 ```yaml
@@ -207,24 +209,8 @@ xrserver registry create myregistry
 xrserver registry list
 ```
 
-## `xrserver` Environment Variables
+## `xrserver` Environment Variables & Config File
 
-The following environment variables can be set in the environment in which
-the `xrserver` command is executed:
-
-| Env Var    | Value |
-| ---------- | ----- |
-| XR_PORT    | Listening port of the `xrserver` API server (8080*) |
-| XR_MODEL_PATH | Where to find the sample's model files |
-| XR_LOAD_LARGE | If set, a very large default sample Registry will be loaded |
-| XR_VERBOSE | Chatty level - 0=none, 1=start-up info, 2=HTTP requests*, 3+=debug |
-
-To configure the `xrserver` to use a non-local (127.0.0.1:3306) MySQL
-instance, set the following environment variables:
-
-| Env Var    | Value |
-| ---------- | ----- |
-| DBHOST     | Hostname, or IP address, of MySQL instance (127.0.0.1*) |
-| DBPORT     | Listening port of MySQL instance (3306*) |
-| DBUSER     | Admin login for MySQL instance (root*) |
-| DBPASSWORD | Admin password for MySQL instance (password*) |
+Covered in the [Configuration Reference](../configuration.md), including
+the full list of `DB*`/`XR_*` environment variables and the `.xrserver`
+config file format (`rootapp`, `path.*`, `ui.*`, `db.*`, ...).

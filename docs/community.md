@@ -1,5 +1,7 @@
 # Community
 
+Questions, ideas, or just want to say hi? Here's where the project talks.
+
 ## Communications
 
 The main mailing list for e-mail communications:

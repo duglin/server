@@ -1,4 +1,9 @@
-# Developers
+# Developer Guide
+
+See [Design Notes](design.md) for implementation-specific patterns and
+gotchas discovered while working on this codebase (DB conventions, model
+validation order, testing quirks, etc.) — read it before touching
+`registry/`.
 
 ## Contributing
 
@@ -82,4 +87,28 @@ the packages listed on the `RUN apk add` command.
 | `make mysql`        | Start MySQL in a container |
 | `make mysql-client` | Run the MySQL client in a container, for debugging |
 | `make testdev`      | Build/verify dev image; `make all` using image |
+| `make docs`         | Regenerate `docs/cli/xr.md`/`docs/cli/xrserver.md` help blocks from `--help-all` |
+| `make xrlint`       | Run repo-specific static checks (see below) |
+
+## `xrlint`
+
+A small suite of repo-specific static checks (`cmds/xrlint`), each
+individually toggleable via flags (all run by default):
+
+| Check | Flag | Finds |
+| --- | --- | --- |
+| `nilcheck` | `--nilcheck` | `any`-typed results compared with `== nil`/`!= nil` instead of `common.IsNil()` |
+| `unused` | `--unused` | Package-level funcs/methods never referenced anywhere |
+| `gofmt` | `--gofmt` | Files not formatted with `gofmt -l` |
+| `defertrace` | `--defertrace` | `defer log.Trace(...)` missing the trailing `()` |
+
+Run it with `make xrlint`, or `go run ./cmds/xrlint` directly. See the
+package comment in `cmds/xrlint/main.go` for full details on each check.
+
+## Updating the CLI help docs
+
+`docs/cli/xr.md` and `docs/cli/xrserver.md` embed generated `--help-all`
+output between `<!-- ... HELP START/END -->` markers. After changing any
+flag or command, run `make docs` to regenerate them — don't hand-edit the
+generated block.
 
