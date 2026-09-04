@@ -120,3 +120,5 @@ TODOs:
 -- add charset to content-type in responses
 - xrserver --downloadUI
 ** change --set (for config setting) to something else so xr can use it too
+** pretty-printer to have json match spec - js and golang (registry and model)
+** make loader.go use APIs

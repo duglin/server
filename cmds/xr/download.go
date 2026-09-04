@@ -42,11 +42,13 @@ var md = goldmark.New(
 
 func addDownloadCmd(parent *cobra.Command) {
 	downloadCmd := &cobra.Command{
-		Use:     "download DIR [XID...] ",
+		Use:     "download DIR [XID...]",
 		Short:   "Download entities from registry as individual files",
 		Run:     downloadFunc,
 		GroupID: "Entities",
 	}
+	downloadCmd.Flags().BoolP("all", "a", false,
+		"Download all data (e.g. export, model)")
 	downloadCmd.Flags().StringP("url", "u", "",
 		"Host/path to update xRegistry paths")
 	downloadCmd.Flags().BoolP("import", "", false,
@@ -56,7 +58,7 @@ func addDownloadCmd(parent *cobra.Command) {
 	downloadCmd.Flag("index").DefValue = "" // hide default text
 	downloadCmd.Flags().BoolP("md2html-no-style", "", false,
 		"Do not add default styling to html files")
-	downloadCmd.Flags().BoolP("md2html", "m", false,
+	downloadCmd.Flags().BoolP("md2html", "", false,
 		"Generate HTML files for MD files")
 	downloadCmd.Flags().StringP("md2html-css-link", "", "",
 		"CSS stylesheet 'link' to add in md2html files")
@@ -64,6 +66,8 @@ func addDownloadCmd(parent *cobra.Command) {
 		"HTML to add in <head> (data,@FILE,@URL,@-)")
 	downloadCmd.Flags().StringP("md2html-html", "", "",
 		"HTML to add after <head> (data,@FILE,@URL,@-)")
+	downloadCmd.Flags().BoolP("min", "m", false,
+		"Minimize the data (e.g. no collection json)")
 	downloadCmd.Flags().BoolP("capabilities", "c", false,
 		"Modify capabilities for static site")
 	downloadCmd.Flags().IntP("parallel", "p", 10,
@@ -102,11 +106,13 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 		args = []string{"/"}
 	}
 
+	all, _ := cmd.Flags().GetBool("all")
 	md2html, _ := cmd.Flags().GetBool("md2html")
 	md2htmlNoStyle, _ := cmd.Flags().GetBool("md2html-no-style")
 	md2htmlLink, _ := cmd.Flags().GetString("md2html-css-link")
 	md2htmlHeader, _ := cmd.Flags().GetString("md2html-header")
 	md2htmlHTML, _ := cmd.Flags().GetString("md2html-html")
+	minimal, _ := cmd.Flags().GetBool("min")
 
 	if md2htmlHeader != "" {
 		if md2htmlHeader[0] == '@' {
@@ -199,20 +205,20 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 			}
 
 			// Proces the --nodiff flag
-			all := ArrayContains(noDiff, "*")
+			allNoDiff := ArrayContains(noDiff, "*")
 
-			if all || ArrayContains(noDiff, "epoch") {
+			if allNoDiff || ArrayContains(noDiff, "epoch") {
 				if _, ok := obj["epoch"]; ok {
 					obj["epoch"] = 1
 				}
 			}
-			if all || ArrayContains(noDiff, "createdat") {
+			if allNoDiff || ArrayContains(noDiff, "createdat") {
 				if _, ok := obj["createdat"]; ok {
 					obj["createdat"] = `2000-01-01T12:00:00.00Z`
 				}
 			}
 			// Must come after "createdat" processing
-			if all || ArrayContains(noDiff, "modifiedat") {
+			if allNoDiff || ArrayContains(noDiff, "modifiedat") {
 				if _, ok := obj["modifiedat"]; ok {
 					obj["modifiedat"] = obj["createdat"]
 				}
@@ -234,19 +240,19 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 
 		delete(headers, "xregistry-shortself")
 		for _, k := range SortedKeys(headers) {
-			all := ArrayContains(noDiff, "*")
+			allNoDiff := ArrayContains(noDiff, "*")
 
-			if all || ArrayContains(noDiff, "epoch") {
+			if allNoDiff || ArrayContains(noDiff, "epoch") {
 				if k == "xregistry-epoch" {
 					headers[k] = "1"
 				}
 			}
-			if all || ArrayContains(noDiff, "createdat") {
+			if allNoDiff || ArrayContains(noDiff, "createdat") {
 				if k == "xregistry-createdat" {
 					headers[k] = "2000-01-01T12:00:00.00Z"
 				}
 			}
-			if all || ArrayContains(noDiff, "modifiedat") {
+			if allNoDiff || ArrayContains(noDiff, "modifiedat") {
 				if k == "xregistry-modifiedat" {
 					headers[k] = headers["xregistry-createdat"]
 				}
@@ -254,8 +260,8 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	makeImportObj := func(objAny any) {}
-	makeImportObj = func(objAny any) {
+	makeImportObj := func(objAny any, minimal bool) {}
+	makeImportObj = func(objAny any, minimal bool) {
 		obj, ok := objAny.(map[string]any)
 		if !ok || len(obj) == 0 {
 			return
@@ -283,9 +289,18 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 		delete(obj, "xid")
 		delete(obj, "epoch")
 
+		if minimal {
+			delete(obj, "createdat")
+			delete(obj, "modifiedat")
+		}
+
 		switch xid.Type {
 		case ENTITY_REGISTRY:
 			delete(obj, "registryid")
+
+			if minimal {
+				delete(obj, "specversion")
+			}
 
 			for _, gm := range reg.Model.Groups {
 				delete(obj, gm.Plural+"url")
@@ -293,20 +308,31 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 
 				if nestedObj, ok := obj[gm.Plural].(map[string]any); ok {
 					for _, gObj := range nestedObj {
-						makeImportObj(gObj)
+						makeImportObj(gObj, minimal)
+					}
+
+					if len(obj[gm.Plural].(map[string]any)) == 0 {
+						delete(obj, gm.Plural)
 					}
 				}
 			}
 
 		case ENTITY_GROUP:
 			gm := reg.Model.Groups[xid.Group]
+
+			delete(obj, gm.Singular+"id")
+
 			for _, rm := range gm.Resources {
 				delete(obj, rm.Plural+"url")
 				delete(obj, rm.Plural+"count")
 
 				if nestedObj, ok := obj[rm.Plural].(map[string]any); ok {
 					for _, rObj := range nestedObj {
-						makeImportObj(rObj)
+						makeImportObj(rObj, minimal)
+					}
+
+					if len(obj[rm.Plural].(map[string]any)) == 0 {
+						delete(obj, rm.Plural)
 					}
 				}
 			}
@@ -322,10 +348,16 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 			delete(obj, "versionsurl")
 			delete(obj, "versionscount")
 
-			makeImportObj(obj["meta"])
+			makeImportObj(obj["meta"], minimal)
+			if meta, ok := obj["meta"]; ok {
+				if len(meta.(map[string]any)) == 0 {
+					delete(obj, "meta")
+				}
+			}
+
 			if nestedObj, ok := obj["versions"].(map[string]any); ok {
 				for _, vObj := range nestedObj {
-					makeImportObj(vObj)
+					makeImportObj(vObj, minimal)
 				}
 			}
 
@@ -336,6 +368,16 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 			delete(obj, rm.Singular+"id")
 			delete(obj, "defaultversionurl")
 
+			if minimal {
+				if obj["readonly"] == false {
+					delete(obj, "readonly")
+				}
+				if obj["defaultversionsticky"] == false {
+					delete(obj, "defaultversionid")
+					delete(obj, "defaultversionsticky")
+				}
+			}
+
 		case ENTITY_VERSION:
 			gm := reg.Model.Groups[xid.Group]
 			rm := gm.Resources[xid.Resource]
@@ -343,8 +385,6 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 			delete(obj, rm.Singular+"id")
 			delete(obj, "isdefault")
 			delete(obj, "versionid")
-			delete(obj, "vesionsurl")
-			delete(obj, "versionscount")
 		}
 	}
 
@@ -372,30 +412,50 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 		data, err = json.MarshalIndent(obj, "", "  ")
 		Error(err)
 
+		if minimal {
+			makeImportObj(obj, true)
+			data, err = json.MarshalIndent(obj, "", "  ")
+			Error(err)
+		}
+
 		switch xid.Type {
-		case ENTITY_REGISTRY:
-			fallthrough
 		case ENTITY_GROUP_TYPE:
 			fallthrough
 		case ENTITY_RESOURCE_TYPE:
 			fallthrough
 		case ENTITY_VERSION_TYPE:
+			if minimal {
+				break
+			}
+			fallthrough
+		case ENTITY_REGISTRY:
 			fallthrough
 		case ENTITY_GROUP:
-			fn := file + strings.TrimRight(xid.String(), "/") + "/" + indexFile
-			Write(fn, data)
-			Write(fn+".hdr", []byte("content-type: application/json"))
+			fn := file + strings.TrimRight(xid.String(), "/")
+			if len(obj) > 0 {
+				fn := fn + "/" + indexFile
+				Write(fn, data)
+				if !minimal {
+					Write(fn+".hdr", []byte("content-type: application/json"))
+				}
+			} else {
+				Error(os.MkdirAll(fn, 0774))
+			}
 
 		case ENTITY_RESOURCE:
-			fn := file + xid.String() + "$details"
-			Write(fn, data)
-			Write(fn+".hdr", []byte("content-type: application/json"))
+			if len(obj) > 0 {
+				fn := file + xid.String() + "$details"
+				Write(fn, data)
+				if !minimal {
+					Write(fn+".hdr", []byte("content-type: application/json"))
+				}
+			}
 
 			rm, xErr := reg.FindResourceModel(xid.Group, xid.Resource)
 			Error(xErr)
 
 			if rm.HasDocument != nil && *(rm.HasDocument) {
-				fn = file + xid.String() + "/" + indexFile
+				fn := file + xid.String() + "/" + indexFile
 				data, hdr := Download(reg, xid.String())
 				Write(fn, data)
 
@@ -410,13 +470,15 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 					}
 					noDiffHeaders(hdr)
 
-					fn = file + xid.String() + ".hdr"
-					str := ""
-					for _, k := range SortedKeys(hdr) {
-						// Assume just one value per header
-						str += fmt.Sprintf("%s:%s\n", k, hdr[k])
+					if !minimal {
+						fn = file + xid.String() + ".hdr"
+						str := ""
+						for _, k := range SortedKeys(hdr) {
+							// Assume just one value per header
+							str += fmt.Sprintf("%s:%s\n", k, hdr[k])
+						}
+						Write(fn, []byte(str))
 					}
-					Write(fn, []byte(str))
 				}
 
 				fn = file + xid.String()
@@ -502,26 +564,38 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 					Error(os.WriteFile(fn, html.Bytes(), 0644))
 				}
 			} else {
-				fn := file + xid.String() + "/" + indexFile
-				Write(fn, data)
-				Write(fn+".hdr", []byte("content-type: application/json"))
+				if !minimal {
+					fn := file + xid.String() + "/" + indexFile
+					Write(fn, data)
+					if !minimal {
+						Write(fn+".hdr", []byte("content-type: application/json"))
+					}
+				}
 			}
 
 		case ENTITY_META:
-			fn := file + xid.String()
-			Write(fn, data)
-			Write(fn+".hdr", []byte("content-type: application/json"))
+			if len(obj) > 0 {
+				fn := file + xid.String()
+				Write(fn, data)
+				if !minimal {
+					Write(fn+".hdr", []byte("content-type: application/json"))
+				}
+			}
 
 		case ENTITY_VERSION:
-			fn := file + xid.String() + "$details"
-			Write(fn, data)
-			Write(fn+".hdr", []byte("content-type: application/json"))
+			if len(obj) > 0 {
+				fn := file + xid.String() + "$details"
+				Write(fn, data)
+				if !minimal {
+					Write(fn+".hdr", []byte("content-type: application/json"))
+				}
+			}
 
 			rm, xErr := reg.FindResourceModel(xid.Group, xid.Resource)
 			Error(xErr)
 
 			if rm.HasDocument != nil && *(rm.HasDocument) {
-				fn = file + xid.String() + "/" + indexFile
+				fn := file + xid.String() + "/" + indexFile
 				data, hdr := Download(reg, xid.String())
 				Write(fn, data)
 
@@ -533,13 +607,15 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 					}
 					noDiffHeaders(hdr)
 
-					fn = file + xid.String() + ".hdr"
-					str := ""
-					for _, k := range SortedKeys(hdr) {
-						// Assume just one value per header
-						str += fmt.Sprintf("%s:%s\n", k, hdr[k])
+					if !minimal {
+						fn = file + xid.String() + ".hdr"
+						str := ""
+						for _, k := range SortedKeys(hdr) {
+							// Assume just one value per header
+							str += fmt.Sprintf("%s:%s\n", k, hdr[k])
+						}
+						Write(fn, []byte(str))
 					}
-					Write(fn, []byte(str))
 				}
 
 				fn = file + xid.String()
@@ -550,9 +626,14 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 					Error(os.WriteFile(fn, html.Bytes(), 0644))
 				}
 			} else {
-				fn := file + xid.String() + "/" + indexFile
-				Write(fn, data)
-				Write(fn+".hdr", []byte("content-type: application/json"))
+				if !minimal {
+					fn := file + xid.String() + "/" + indexFile
+					Write(fn, data)
+					if !minimal {
+						Write(fn+".hdr",
+							[]byte("content-type: application/json"))
+					}
+				}
 			}
 
 		}
@@ -585,71 +666,56 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 	}
 	close(listCH) // close work-queue
 
-	data, _ := Download(reg, "/export")
-	if len(data) > 0 {
-		// If the user wants the "capabilities" to be modified for a static
-		// web site then we need to update them in the /export output too
-		// obj := map[string]json.RawMessage(nil)
-		obj := map[string]any{}
-		if err := json.Unmarshal(data, &obj); err != nil {
-			Error(NewXRError("parsing_response",
-				reg.GetServerURL()+"/export",
-				"error_detail="+err.Error()))
-		}
+	exportData := []byte{}
 
-		if modCap {
-			caps, xErr := ParseCapabilities([]byte(ToJSON(obj["capabilities"])))
-			Error(xErr)
-
-			caps.Available = map[string]*AvailableObject{
-				"capabilities":        &AvailableObject{Mutable: false},
-				"capabilitiesoffered": &AvailableObject{Mutable: false},
-				"entities":            &AvailableObject{Mutable: false},
-				"export":              &AvailableObject{Mutable: false},
-				"model":               &AvailableObject{Mutable: false},
-				"modelsource":         &AvailableObject{Mutable: false},
+	if all {
+		exportData, _ := Download(reg, "/export")
+		if len(exportData) > 0 {
+			// If the user wants the "capabilities" to be modified for a static
+			// web site then we need to update them in the /export output too
+			// obj := map[string]json.RawMessage(nil)
+			obj := map[string]any{}
+			if err := json.Unmarshal(exportData, &obj); err != nil {
+				Error(NewXRError("parsing_response",
+					reg.GetServerURL()+"/export",
+					"error_detail="+err.Error()))
 			}
-			caps.Flags = nil
-			caps.Pagination = false
-			caps.ShortSelf = false
-			obj["capabilities"] = caps
+
+			if modCap {
+				caps, xErr := ParseCapabilities([]byte(
+					ToJSON(obj["capabilities"])))
+				Error(xErr)
+
+				caps.Available = map[string]*AvailableObject{
+					"capabilities":        &AvailableObject{Mutable: false},
+					"capabilitiesoffered": &AvailableObject{Mutable: false},
+					"entities":            &AvailableObject{Mutable: false},
+					"export":              &AvailableObject{Mutable: false},
+					"model":               &AvailableObject{Mutable: false},
+					"modelsource":         &AvailableObject{Mutable: false},
+				}
+				caps.Flags = nil
+				caps.Pagination = false
+				caps.ShortSelf = false
+				obj["capabilities"] = caps
+			}
+
+			noDiffObj(obj)
+			exportData, _ = json.MarshalIndent(obj, "", "  ")
+
+			Write(dir+"/export", exportData)
+			if !minimal {
+				Write(dir+"/export.hdr", []byte("content-type: application/json"))
+			}
 		}
 
-		noDiffObj(obj)
-		data, _ = json.MarshalIndent(obj, "", "  ")
-
-		Write(dir+"/export", data)
-		Write(dir+"/export.hdr", []byte("content-type: application/json"))
-	}
-
-	if importFile {
-		obj := map[string]any{}
-		if err := json.Unmarshal(data, &obj); err != nil {
-			Error(NewXRError("parsing_response",
-				reg.GetServerURL()+"/export",
-				"error_detail="+err.Error()))
-		}
-		makeImportObj(obj)
-		data, _ = json.MarshalIndent(obj, "", "  ")
-
-		Write(dir+"/import.json", data)
-		Write(dir+"/import.json.hdr", []byte("content-type: application/json"))
-	}
-
-	data, _ = Download(reg, "/model")
-	if len(data) > 0 {
+		data, _ := Download(reg, "/model")
 		Write(dir+"/model", data)
-		Write(dir+"/model.hdr", []byte("content-type: application/json"))
-	}
+		if !minimal {
+			Write(dir+"/model.hdr", []byte("content-type: application/json"))
+		}
 
-	data, _ = Download(reg, "/modelsource")
-	if len(data) > 0 {
-		Write(dir+"/modelsource", data)
-		Write(dir+"/modelsource.hdr", []byte("content-type: application/json"))
-	}
-
-	data, _ = Download(reg, "/capabilities")
-	if len(data) > 0 {
+		data, _ = Download(reg, "/capabilities")
 		if modCap {
 			caps, xErr := ParseCapabilities(data)
 			Error(xErr)
@@ -668,14 +734,49 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 		}
 
 		Write(dir+"/capabilities", data)
-		Write(dir+"/capabilities.hdr", []byte("content-type: application/json"))
+		if !minimal {
+			Write(dir+"/capabilities.hdr",
+				[]byte("content-type: application/json"))
+		}
+
+		data, _ = Download(reg, "/capabilitiesoffered")
+		Write(dir+"/capabilitiesoffered", data)
+		if !minimal {
+			Write(dir+"/capabilitiesoffered.hdr",
+				[]byte("content-type: application/json"))
+		}
 	}
 
-	data, _ = Download(reg, "/capabilitiesoffered")
-	if len(data) > 0 {
-		Write(dir+"/capabilitiesoffered", data)
-		Write(dir+"/capabilitiesoffered.hdr",
+	modelSrc, _ := Download(reg, "/modelsource")
+	Write(dir+"/modelsource", modelSrc)
+	if !minimal {
+		Write(dir+"/modelsource.hdr",
 			[]byte("content-type: application/json"))
+	}
+
+	if importFile {
+		data := []byte{}
+		if len(exportData) > 0 {
+			data = exportData
+		} else {
+			data, _ = Download(reg, "/export")
+		}
+
+		obj := map[string]any{}
+		if err := json.Unmarshal(data, &obj); err != nil {
+			Error(NewXRError("parsing_response",
+				reg.GetServerURL()+"/export",
+				"error_detail="+err.Error()))
+		}
+
+		makeImportObj(obj, minimal)
+		data, _ = json.MarshalIndent(obj, "", "  ")
+
+		Write(dir+"/import.json", data)
+		if !minimal {
+			Write(dir+"/import.json.hdr",
+				[]byte("content-type: application/json"))
+		}
 	}
 
 	// Just incase the queue is still processing

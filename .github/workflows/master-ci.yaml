@@ -47,9 +47,11 @@ jobs:
         run: make mysql test benchmark push
 
       - name: build cmds for all platforms
+        if: github.repositor_owner == 'xregistry'
         run: make cmds-all
 
       - name: push all cmds to the 'dev' release
+        if: github.repositor_owner == 'xregistry'
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
@@ -78,6 +80,7 @@ jobs:
         run: misc/restart SOAPHUB_SSH_KEY ubuntu@soaphub.org
 
       - name: Send regen event to api.xreg.io repo
+        if: github.repositor_owner == 'xregistry'
         run: |
           curl -f -X POST \
           -H "Accept: application/vnd.github+json" \
@@ -86,6 +89,7 @@ jobs:
           -d '{"event_type": "server_updated"}'
 
       - name: Send regen event to hub.xreg.io repo
+        if: github.repositor_owner == 'xregistry'
         run: |
           curl -f -X POST \
           -H "Accept: application/vnd.github+json" \
@@ -94,6 +98,7 @@ jobs:
           -d '{"event_type": "server_updated"}'
 
       - name: Send regen event to xreg.io repo
+        if: github.repositor_owner == 'xregistry'
         run: |
           curl -f -X POST \
           -H "Accept: application/vnd.github+json" \
