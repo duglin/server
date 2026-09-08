@@ -84,7 +84,7 @@ func StopTx(tx *registry.Tx, args ...any) {
 }
 
 func Verbose(args ...any) {
-	if log.GetVerbose() == 0 || len(args) == 0 || IsNil(args[0]) {
+	if log.GetLevel() == 0 || len(args) == 0 || IsNil(args[0]) {
 		return
 	}
 
@@ -242,7 +242,7 @@ func setupCmds() *cobra.Command {
 		if cmd.Flags().Changed("verbose") {
 			tmpV, _ = cmd.Flags().GetCount("verbose")
 		}
-		log.SetVerbose(tmpV)
+		log.AddVerbose(tmpV)
 	}
 
 	return serverCmd
@@ -337,8 +337,8 @@ func runFunc(cmd *cobra.Command, args []string) {
 		os.Setenv("XR_MODEL_PATH", ".:"+paths+
 			":http://raw.githubusercontent.com/xregistry/spec/main")
 
-		saveV := log.GetVerbose()
-		log.SetVerbose(1) // Hide the HTTP PUTs, etc.
+		saveV := log.Clone()
+		log.AddVerbose(1) // Hide the HTTP PUTs, etc.
 
 		LoadCESample(nil)
 		LoadDirsSample(nil)
@@ -348,7 +348,7 @@ func runFunc(cmd *cobra.Command, args []string) {
 		LoadAPIGuru(nil, "APIs-guru", "openapi-directory")
 		LoadDocStore(nil)
 
-		log.SetVerbose(saveV)
+		log.Reset(saveV)
 
 		if os.Getenv("XR_LOAD_LARGE") != "" {
 			go LoadLargeSample(nil)
@@ -509,7 +509,7 @@ func showAllHelp(cmd *cobra.Command, indent string) string {
 
 func main() {
 	if tmp := os.Getenv("XR_VERBOSE"); tmp != "" {
-		log.SetVerbose(tmp)
+		log.AddVerbose(tmp)
 	}
 
 	serverCmd := setupCmds()

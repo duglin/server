@@ -356,3 +356,9 @@ func (xid *Xid) AddPath(str string) (*Xid, error) {
 
 	return ParseXid(xidStr + "/" + str)
 }
+
+func (xid *Xid) IsCollectionType() bool {
+	return xid.Type == ENTITY_GROUP_TYPE ||
+		xid.Type == ENTITY_RESOURCE_TYPE ||
+		xid.Type == ENTITY_VERSION_TYPE
+}

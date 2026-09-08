@@ -110,17 +110,17 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		tx.Rollback()
 	}()
 
-	saveVerbose := log.GetVerbose()
+	saveVerbose := log.Clone()
 	if tmp := r.URL.Query().Get("verbose"); tmp != "" {
-		log.SetVerbose(tmp)
+		log.AddVerbose(tmp)
 		defer func() {
 			log.DelVerbose(tmp)
-			log.SetVerbose(saveVerbose)
+			log.Reset(saveVerbose)
 		}()
 	}
 
 	// If Verbose > 2 (-vvv) or we're logging any keyword then show tx
-	if log.GetVerbose() > 2 || log.IsVerbose() {
+	if log.GetLevel() > 2 || log.IsVerbose() {
 		log.VPrintf(2, "tx: %s %s %s", uuid, r.Method, r.URL)
 	} else {
 		log.VPrintf(2, "%s %s", r.Method, r.URL)
@@ -238,10 +238,10 @@ func (s *Server) serveOneAttempt(uuid string, w http.ResponseWriter,
 			}
 
 			if !lastAttempt {
-				if log.GetVerbose() == 1 && !log.IsVerbose() {
+				if log.GetLevel() == 1 && !log.IsVerbose() {
 					log.Printf("Retrying %s %s after DB lock conflict "+
 						"(attempt %d)", r.Method, r.URL, attempt)
-				} else if log.GetVerbose() > 1 {
+				} else if log.GetLevel() > 1 {
 					log.VPrintf(3, "tx: %s Retrying %s %s after DB lock "+
 						"conflict (attempt %d)", uuid, r.Method, r.URL,
 						attempt)
@@ -1051,7 +1051,7 @@ func SerializeQuery(info *RequestInfo, resXIDs map[string][]string,
 		start := time.Now()
 
 		defer func() {
-			if log.GetVerbose() > 3 {
+			if log.GetLevel() > 3 {
 				diff := time.Now().Sub(start).Truncate(time.Millisecond)
 				log.Printf("tx: %s Total Time: %s", info.tx.uuid, diff)
 			}

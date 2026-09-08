@@ -251,9 +251,9 @@ func TestMiscCORS(t *testing.T) {
 		{"PATCH", "/dirs/d1", "{}", 201},
 		{"PATCH", "/dirs/d1", "", 400},
 	} {
-		t.Logf("Test: %s %s", test.method, test.url)
+		// t.Logf("Test: %s %s", test.method, test.url)
 		res := XHTTP(t, reg, test.method, test.url, test.body, test.code, "*")
-		t.Logf("response body: %s", res.body)
+		// t.Logf("response body: %s", res.body)
 
 		XEqual(t, "cors header",
 			res.Header.Get("Access-Control-Allow-Origin"), "*")
@@ -401,10 +401,10 @@ func NewJob(test *testing.T, name string, sf *bool, wg *sync.WaitGroup, p int, t
 	ready := int32(0)
 	wg.Add(1)
 	go func() {
-		j.t.Logf("Defined: %s", j.name)
+		// j.t.Logf("Defined: %s", j.name)
 		defer func() {
 			j.wg.Done()
-			j.t.Logf("Done: %s (job)", j.name)
+			// j.t.Logf("Done: %s (job)", j.name)
 		}()
 
 		for i := 0; i < j.total; {
@@ -413,18 +413,18 @@ func NewJob(test *testing.T, name string, sf *bool, wg *sync.WaitGroup, p int, t
 				go func(c int) {
 					defer func(d int) {
 						atomic.AddInt32(&j.active, -1)
-						j.t.Logf("Done: %s (%d)", j.name, d)
+						// j.t.Logf("Done: %s (%d)", j.name, d)
 					}(c)
 					first := true
 					for *j.startFlag == false {
 						if first {
-							j.t.Logf("Waiting: %s (%d)", j.name, c)
+							// j.t.Logf("Waiting: %s (%d)", j.name, c)
 							first = false
 							atomic.AddInt32(&ready, 1)
 						}
 						time.Sleep(2 * time.Millisecond)
 					}
-					j.t.Logf("Sending: %s (%d)", j.name, c)
+					// j.t.Logf("Sending: %s (%d)", j.name, c)
 					j.fn(c)
 				}(i)
 				i++
@@ -484,7 +484,7 @@ func TestMiscConcurrency(t *testing.T) {
 			if res != nil && res.StatusCode == 503 &&
 				strings.Contains(res.body, "server_busy") {
 				time.Sleep(100 * time.Millisecond)
-				t.Logf("Got 500+try again, retrying...")
+				// t.Logf("Got 500+try again, retrying...")
 				continue
 			}
 
@@ -502,7 +502,7 @@ func TestMiscConcurrency(t *testing.T) {
 
 	runs := 0
 	for _, mod := range models {
-		t.Logf("============================\nMODEL:\n%s\n", mod)
+		// t.Logf("============================\nMODEL:\n%s\n", mod)
 		XHTTP(t, reg, "PUT", "/modelsource", mod, 200, mod+"\n")
 
 		startFlag := false
@@ -533,16 +533,16 @@ func TestMiscConcurrency(t *testing.T) {
 			redoXHTTP("PUT", fmt.Sprintf("/dirs/d1/files/f1/versions/1"), "{}", 2, "*")
 		})
 
-		// oldVerbose := log.GetVerbose()
-		// log.SetVerbose(2) // To see server's activity
-		// defer log.SetVerbose(oldVerbose)
+		// oldVerbose := log.Clone()
+		// log.AddVerbose(2) // To see server's activity
+		// defer log.Reset(oldVerbose)
 
 		runs = runs + 1
 
-		t.Logf("GO Run #%d!!! -----", runs)
+		// t.Logf("GO Run #%d!!! -----", runs)
 		startFlag = true
 		wg.Wait()
-		t.Logf("DONE Run #%d", runs)
+		// t.Logf("DONE Run #%d", runs)
 
 		res := XHTTP(t, reg, "GET", "/?inline", "", 200, "*")
 
@@ -616,10 +616,10 @@ func TestMiscDeadlockRetry(t *testing.T) {
 	// message (emitted by ServeHTTP right before it loops for another
 	// attempt) actually fired at least once.
 	buf := &SyncBuffer{}
-	saveVerbose := log.GetVerbose()
+	saveVerbose := log.Clone()
 	saveWriter := log.Writer()
 	log.SetOutput(buf)
-	log.SetVerbose(1)
+	log.AddVerbose(1)
 	// Registered BEFORE the PassDeleteReg defer below so it runs AFTER
 	// it (defers run LIFO) - otherwise log output gets reset to nil
 	// while PassDeleteReg's cleanup (which can still log, e.g. if it
@@ -628,7 +628,7 @@ func TestMiscDeadlockRetry(t *testing.T) {
 	// later test that logs after this one runs.
 	defer func() {
 		log.SetOutput(saveWriter)
-		log.SetVerbose(saveVerbose)
+		log.Reset(saveVerbose)
 	}()
 	defer PassDeleteReg(t, reg)
 
@@ -702,7 +702,7 @@ func (b *SyncBuffer) Clear() {
 
 func TestMiscTestLogging(t *testing.T) {
 	buf := &SyncBuffer{}
-	saveVerbose := log.GetVerbose()
+	saveVerbose := log.Clone()
 	saveWriter := log.Writer()
 	log.SetOutput(buf)
 	// Registered BEFORE the PassDeleteReg defer below so it runs AFTER
@@ -713,7 +713,7 @@ func TestMiscTestLogging(t *testing.T) {
 	// later test that logs after this one runs.
 	defer func() {
 		log.SetOutput(saveWriter)
-		log.SetVerbose(saveVerbose)
+		log.Reset(saveVerbose)
 	}()
 
 	reg := NewRegistry("TestMiscTestLogging")
@@ -748,14 +748,14 @@ func TestMiscTestLogging(t *testing.T) {
 	logOutput := buf.String()
 	XEqual(t, "", logOutput, "")
 	buf.Clear()
-	log.Reset()
+	log.Reset(nil)
 
 	XHTTP(t, reg, "GET", "/?verbose=Query", "", 200, "*")
 	logOutput = buf.String()
 	// Must be: YYYY/MM/DD HH:MM:SS tx: TXUID Query:
 	XEqual(t, "", logOutput, "^(?m)^[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} tx: [a-zA-Z0-9]+ Query:")
 	buf.Clear()
-	log.Reset()
+	log.Reset(nil)
 
 	ts := `[0-9]{4}/[0-9]{2}/[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}`
 	XHTTP(t, reg, "GET", "/?verbose=HTTPGet:timed:Query", "", 200, "*")
@@ -768,4 +768,5 @@ func TestMiscTestLogging(t *testing.T) {
 			`.*`+
 			`^`+ts+` .* HTTPGet time: [0-9]+\.[0-9]+.?s$`)
 
+	log.Reset(nil)
 }

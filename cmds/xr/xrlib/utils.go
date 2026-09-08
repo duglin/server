@@ -26,7 +26,7 @@ var HTTPHeaders = map[string]string(nil) // headers for all server requests
 
 func Debug(args ...any) {
 	// if !DebugFlag || len(args) == 0 || IsNil(args[0]) {
-	if log.GetVerbose() < 2 || len(args) == 0 || IsNil(args[0]) {
+	if log.GetLevel() < 2 || len(args) == 0 || IsNil(args[0]) {
 		return
 	}
 

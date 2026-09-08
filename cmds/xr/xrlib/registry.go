@@ -87,7 +87,7 @@ func (reg *Registry) Refresh() *XRError {
 }
 
 func (reg *Registry) RefreshModel() *XRError {
-	res, xErr := reg.HttpDo(log.GetVerbose() > 2, "GET", "/model", nil)
+	res, xErr := reg.HttpDo(log.GetLevel() > 2, "GET", "/model", nil)
 	if xErr != nil {
 		return xErr
 	}
@@ -103,7 +103,7 @@ func (reg *Registry) RefreshModel() *XRError {
 }
 
 func (reg *Registry) RefreshCapabilities() *XRError {
-	res, xErr := reg.HttpDo(log.GetVerbose() > 2, "GET", "/capabilities", nil)
+	res, xErr := reg.HttpDo(log.GetLevel() > 2, "GET", "/capabilities", nil)
 	if xErr != nil {
 		return xErr
 	}
@@ -199,7 +199,7 @@ func (reg *Registry) RefreshModelSource() *XRError {
 		}
 	}
 
-	res, xErr := reg.HttpDo(log.GetVerbose() > 2, "GET", "/modelsource", nil)
+	res, xErr := reg.HttpDo(log.GetLevel() > 2, "GET", "/modelsource", nil)
 
 	reg.Model.Source = ""
 
@@ -351,7 +351,7 @@ func (reg *Registry) DownloadObject(path string) (map[string]any, *XRError) {
 		return nil, xErr
 	}
 
-	return DownloadObject(log.GetVerbose() > 2, urlPath.String())
+	return DownloadObject(log.GetLevel() > 2, urlPath.String())
 }
 
 func (rm *ResourceModel) HasDoc() bool {

@@ -283,7 +283,7 @@ func (tx *Tx) NewTx() *XRError {
 	tx.tx = t
 	tx.CreateTime = time.Now().UTC().Format(time.RFC3339Nano)
 	tx.Cache = map[string]*Entity{}
-	tx.stack = GetStack()
+	// tx.stack = GetStack()
 
 	log.FuncPrintf("tx: %s Begin transaction", tx.uuid)
 
