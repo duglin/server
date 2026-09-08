@@ -147,7 +147,7 @@ xr: .sharedfiles cmds/xr/* common/*
 		go build $(BUILDFLAGS) -o $@ cmds/xr/*.go
 
 xreg: cmds mysql registry/ui/xreg/index.html
-registry/ui/xreg/index.html: cmds/xrserver/test-reg.json xrserver
+registry/ui/xreg/index.html: cmds/xrserver/test-reg.json xrserver xr
 	@echo
 	@echo "# Regenerating the xreg static site"
 	@-pkill -f "[x]rserver.*8181" || true
@@ -156,7 +156,7 @@ registry/ui/xreg/index.html: cmds/xrserver/test-reg.json xrserver
 	@xr -s localhost:8181 update / -d @cmds/xrserver/test-reg.json
 	@rm -rf registry/ui/xreg/*
 	@cd registry/ui/xreg && ../../../misc/errOutput @xr -s localhost:8181 \
-		download . --nodiff=* -c -u '$$HOST/ui/xreg'
+		download . --nodiff=* --all -c -u '$$HOST/ui/xreg'
 	@pkill -f xrserver.*8181
 
 docs/xr_help.md docs/xrserver_help.md: xr xrserver

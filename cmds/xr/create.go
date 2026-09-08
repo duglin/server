@@ -22,15 +22,15 @@ func addCreateCmd(parent *cobra.Command) {
 		Short:   "Create a new entity in the registry",
 		Run:     createFunc,
 		GroupID: "Entities",
-	}
 
-	createCmd.Long = createCmd.Short + "\n" + `
+		Annotations: map[string]string{
+			"usage": `
 Notes:
-- --data is processed first, then set/del based on command line order
-- Using --set or --del or implicitly enables --details
-- When setting attributes use escaped double-quotes (e.g. --set prop=\"5\") to
-  force it to be a string
-`
+  - First --data is processed, then --set/--del based on command line order
+  - When setting attributes use escaped double-quotes (e.g. --set prop=\"5\")
+    to force it to be a string`,
+		},
+	}
 
 	createCmd.Flags().StringP("output", "o", "none",
 		"Output format (none*, json) when xReg metadata")
@@ -58,15 +58,15 @@ func addUpsertCmd(parent *cobra.Command) {
 		Run:     createFunc,
 		GroupID: "Entities",
 		// Hidden:  true,
-	}
 
-	upsertCmd.Long = upsertCmd.Short + "\n" + `
+		Annotations: map[string]string{
+			"usage": `
 Notes:
-- --data is processed first, then set/del based on command line order
-- Using --set or --del implicitly enables --details
-- When setting attributes use escaped double-quotes (e.g. --set prop=\"5\") to
-  force it to be a string
-`
+  - First --data is processed, then --set/..del based on command line order
+  - When setting attributes use escaped double-quotes (e.g. --set prop=\"5\")
+    to force it to be a string`,
+		},
+	}
 
 	upsertCmd.Flags().StringP("output", "o",
 		"none", "Output format (none*, json) when xReg metadata")
@@ -92,15 +92,15 @@ func addUpdateCmd(parent *cobra.Command) {
 		Short:   "Update an entity in the registry",
 		Run:     createFunc,
 		GroupID: "Entities",
-	}
 
-	updateCmd.Long = updateCmd.Short + "\n" + `
+		Annotations: map[string]string{
+			"usage": `
 Notes:
-- --data is processed first, then set/del based on command line order
-- Using --set or --del implicitly enables --details
-- When setting attributes use escaped double-quotes (e.g. --set prop=\"5\") to
-  force it to be a string
-`
+  - First --data is processed, then --set/--del based on command line order
+  - When setting attributes use escaped double-quotes (e.g. --set prop=\"5\")
+    to force it to be a string`,
+		},
+	}
 
 	updateCmd.Flags().StringP("output", "o", "none",
 		"Output format (none*, json) when xReg metadata")
@@ -346,13 +346,12 @@ func createFunc(cmd *cobra.Command, args []string) {
 			isMetadata = true
 		} else if isMetadata && xid.Type != ENTITY_META {
 			suffix = "$details"
-
-			// If not uploading a domain doc then make sure data has something
-			if len(data) == 0 {
-				data = `{}`
-			}
 		} else {
 			isDomainDoc = true
+		}
+
+		if isMetadata && len(data) == 0 {
+			data = `{}`
 		}
 	}
 

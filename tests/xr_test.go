@@ -2819,3 +2819,100 @@ Pass: 16   Fail: 17   Warn: 1   Skip: 3
 Pass: 366   Fail: 0   Warn: 0   Skip: 0
 `, ``, true)
 }
+
+func TestXRDownload(t *testing.T) {
+	reg := NewRegistry("TestXRResourceFlags")
+	defer PassDeleteReg(t, reg)
+
+	tmpDir, err := os.MkdirTemp("", "xrtest-home")
+	XNoErr(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	XCLIServer("localhost:8181")
+
+	XCLI(t, "model resource create files:file -g dirs:dir", "", "", "", true)
+	XCLI(t, "model resource create datas:data -g dirs --no-has-doc", "", "",
+		"", true)
+
+	XCLI(t, "create /dirs/d1/files/f1/versions/v1 -d hi", "", "", "", true)
+	XCLI(t, "create /dirs/d1/datas/d1/versions/v1", "", "", "", true)
+	XCLI(t, "create /dirs/d2", "", "", "", true)
+
+	XCLI(t, "download "+tmpDir+"/", "", "*", "", true)
+	files, err := Dir(tmpDir)
+	XNoErr(t, err)
+	XEqual(t, "", strings.Join(files, "\n"), `dirs/
+dirs/d1/
+dirs/d1/datas/
+dirs/d1/datas/d1$details
+dirs/d1/datas/d1$details.hdr
+dirs/d1/datas/d1/
+dirs/d1/datas/d1/index.html
+dirs/d1/datas/d1/index.html.hdr
+dirs/d1/datas/d1/meta
+dirs/d1/datas/d1/meta.hdr
+dirs/d1/datas/d1/versions/
+dirs/d1/datas/d1/versions/index.html
+dirs/d1/datas/d1/versions/index.html.hdr
+dirs/d1/datas/d1/versions/v1$details
+dirs/d1/datas/d1/versions/v1$details.hdr
+dirs/d1/datas/d1/versions/v1/
+dirs/d1/datas/d1/versions/v1/index.html
+dirs/d1/datas/d1/versions/v1/index.html.hdr
+dirs/d1/datas/index.html
+dirs/d1/datas/index.html.hdr
+dirs/d1/files/
+dirs/d1/files/f1$details
+dirs/d1/files/f1$details.hdr
+dirs/d1/files/f1.hdr
+dirs/d1/files/f1/
+dirs/d1/files/f1/index.html
+dirs/d1/files/f1/meta
+dirs/d1/files/f1/meta.hdr
+dirs/d1/files/f1/versions/
+dirs/d1/files/f1/versions/index.html
+dirs/d1/files/f1/versions/index.html.hdr
+dirs/d1/files/f1/versions/v1$details
+dirs/d1/files/f1/versions/v1$details.hdr
+dirs/d1/files/f1/versions/v1.hdr
+dirs/d1/files/f1/versions/v1/
+dirs/d1/files/f1/versions/v1/index.html
+dirs/d1/files/index.html
+dirs/d1/files/index.html.hdr
+dirs/d1/index.html
+dirs/d1/index.html.hdr
+dirs/d2/
+dirs/d2/datas/
+dirs/d2/datas/index.html
+dirs/d2/datas/index.html.hdr
+dirs/d2/files/
+dirs/d2/files/index.html
+dirs/d2/files/index.html.hdr
+dirs/d2/index.html
+dirs/d2/index.html.hdr
+dirs/index.html
+dirs/index.html.hdr
+index.html
+index.html.hdr`)
+
+	err = os.RemoveAll(tmpDir)
+	XNoErr(t, err)
+	tmpDir, err = os.MkdirTemp("", "xrtest-home")
+	XNoErr(t, err)
+
+	XCLI(t, "download -m "+tmpDir+"/", "", "*", "", true)
+	files, err = Dir(tmpDir)
+	XNoErr(t, err)
+	XEqual(t, "", strings.Join(files, "\n"), `dirs/
+dirs/d1/
+dirs/d1/datas/
+dirs/d1/datas/d1$details
+dirs/d1/datas/d1/
+dirs/d1/datas/d1/meta
+dirs/d1/files/
+dirs/d1/files/f1/
+dirs/d1/files/f1/index.html
+dirs/d1/files/f1/meta
+dirs/d2/`)
+
+}

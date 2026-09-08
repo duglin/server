@@ -645,7 +645,7 @@ func ObjectGetProp(obj any, pp *PropPath) (any, bool, error) {
 
 // Value, Found, Error
 func NestedGetProp(obj any, pp *PropPath, prev *PropPath) (any, bool, error) {
-	if log.GetVerbose() > 2 {
+	if log.GetLevel() > 2 {
 		log.Printf("ObjectGetProp: %q\nobj:\n%s", pp.UI(), ToJSON(obj))
 	}
 	if pp == nil || pp.Len() == 0 {

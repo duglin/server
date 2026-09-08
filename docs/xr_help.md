@@ -57,19 +57,21 @@ xr delete XID...
   -v, --verbose         Be chatty
       --version         Print command version string
 
-xr download DIR [XID...] 
+xr download DIR [XID...]
   # Download entities from registry as individual files
+  -a, --all                       Download all data (e.g. export, model)
   -c, --capabilities              Modify capabilities for static site
       --config string             Config file ($HOME/.xr)
       --errjson                   Print errors as json
   -?, --help                      Help for xr
       --import                    Create '/import.json' based on /export
   -i, --index string              Directory index file name (index.html*)
-  -m, --md2html                   Generate HTML files for MD files
+      --md2html                   Generate HTML files for MD files
       --md2html-css-link string   CSS stylesheet 'link' to add in md2html files
       --md2html-header string     HTML to add in <head> (data,@FILE,@URL,@-)
       --md2html-html string       HTML to add after <head> (data,@FILE,@URL,@-)
       --md2html-no-style          Do not add default styling to html files
+  -m, --min                       Minimize the data (e.g. no collection json)
       --nodiff strings            No-diff attrs: *,epoch,createdat,modifiedat
   -p, --parallel int              Number of items to download in parallel (10*)
   -s, --server string             xRegistry server URL

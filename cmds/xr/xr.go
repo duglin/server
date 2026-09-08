@@ -108,7 +108,7 @@ func ErrorUsage(cmd *cobra.Command, obj any, args ...any) {
 
 func Verbose(args ...any) {
 	// if !VerboseFlag || len(args) == 0 || IsNil(args[0]) {
-	if log.GetVerbose() == 0 || len(args) == 0 || IsNil(args[0]) {
+	if log.GetLevel() == 0 || len(args) == 0 || IsNil(args[0]) {
 		return
 	}
 
@@ -274,7 +274,7 @@ func main() {
 		SilenceUsage: true,
 
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			log.SetVerbose(VerboseCount)
+			log.AddVerbose(VerboseCount)
 
 			if b, _ := cmd.Flags().GetBool("version"); b {
 				fmt.Printf("Version: %s\n", GitCommit[:min(len(GitCommit), 12)])
@@ -310,6 +310,17 @@ func main() {
 		},
 	}
 
+	// Put "usage" annotation after "Usage" but before "Flags".
+	// Don't use Command.Long property.
+	cmdTemplate := xrCmd.UsageTemplate()
+	i := strings.Index(cmdTemplate, `{{if gt (len .Aliases) 0}}`)
+	if i > 0 {
+		newText := "{{if index .Annotations \"usage\"}}\n" +
+			"{{index .Annotations \"usage\"}}{{end}}"
+		cmdTemplate = cmdTemplate[:i] + newText + cmdTemplate[i:]
+	}
+	xrCmd.SetUsageTemplate(cmdTemplate)
+
 	xrCmd.CompletionOptions.HiddenDefaultCmd = true
 	xrCmd.PersistentFlags().StringP("config", "", "",
 		"Config file ($HOME/"+XRConfigFileName+")")
@@ -335,7 +346,7 @@ func main() {
 	// just so 'help' is in a group and Hidden is adhered to
 	xrCmd.SetHelpCommand(&cobra.Command{
 		Use:     "help [command]",
-		Short:   "I'm not really here",
+		Short:   "Use [command] --help instead",
 		Hidden:  true,
 		GroupID: "Admin",
 		/*

@@ -53,7 +53,7 @@ const MODEL_DIRS_NODOC = `{
 func TestMain(m *testing.M) {
 	if tmp := os.Getenv("RX_VERBOSE"); tmp != "" {
 		if tmpInt, err := strconv.Atoi(tmp); err == nil {
-			log.SetVerbose(tmpInt)
+			log.AddVerbose(tmpInt)
 		}
 	}
 

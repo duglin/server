@@ -1367,7 +1367,7 @@ ft.eSID IN ( -- eSID from query
 	query += `  ORDER BY ` + sortOrder +
 		`    ft.LowerXID ASC;`
 
-	if log.GetVerbose() > 3 || log.HasVerbose("genq") {
+	if log.GetLevel() > 3 || log.HasVerbose("genq") {
 		log.Printf("tx: %s Query:\n%s\n\n", reg.tx.uuid, SubQuery(query, args))
 	}
 	return query, args, nil

@@ -18,12 +18,15 @@ func addSetCmd(parent *cobra.Command) {
 		Short:   "Update an entity's xRegistry metadata",
 		Run:     setFunc,
 		GroupID: "Entities",
+
+		Annotations: map[string]string{
+			"usage": `
+Notes:
+  - Use "+NAME" to add to existing complex attribute rather than replace it
+  - Use "null" VALUE to delete the attribute
+  - Use escaped double-quotes (e.g. \"5\") to force it to be a string`,
+		},
 	}
-	setCmd.Long = setCmd.Short + "\n" + `
-- Use "+NAME" to add to existing complex attribute rather than replace it
-- Use "null" VALUE to delete the attribute
-- Use escaped double-quotes (e.g. \"5\") to force it to be a string
-`
 
 	setCmd.Flags().StringP("output", "o", "json", "Output format: json, table")
 	setCmd.Flags().BoolP("details", "m", false, "Show resource metadata")

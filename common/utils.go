@@ -1855,3 +1855,80 @@ func (r *RunResult) Kill() *RunResult {
 	r.Wait()
 	return r
 }
+
+func Dir(path string, flags ...string) ([]string, error) {
+	type Entry struct {
+		path       string
+		name       string
+		createdat  time.Time
+		modifiedat time.Time
+		size       int
+		isdir      bool
+		children   map[string]*Entry
+	}
+
+	root := path
+	if root != "" && root[len(root)-1] != '/' {
+		root += "/"
+	}
+	files := map[string]*Entry{}
+
+	traverse := (func(path string, de os.DirEntry) error)(nil)
+	traverse = func(path string, de os.DirEntry) error {
+		var dirEntries []os.DirEntry
+		var err error
+
+		if de == nil {
+			dirEntries, err = os.ReadDir(path)
+			path = ""
+		} else {
+			dirEntries, err = os.ReadDir(root + path + de.Name())
+			path = path + de.Name()
+		}
+		if err != nil {
+			return err
+		}
+
+		if path != "" {
+			path += "/"
+		}
+
+		for _, de := range dirEntries {
+			if !de.IsDir() {
+				e := &Entry{
+					path:  path,
+					name:  de.Name(),
+					isdir: false,
+				}
+				info, err := de.Info()
+				if err != nil {
+					return err
+				}
+				e.size = int(info.Size())
+				e.modifiedat = info.ModTime()
+
+				suffix := ""
+				if e.size == 0 {
+					suffix = " (empty)"
+				}
+
+				files[path+de.Name()+suffix] = e
+			} else {
+				e := &Entry{
+					path:  path,
+					name:  de.Name(),
+					isdir: true,
+				}
+				files[path+de.Name()+"/"] = e
+				traverse(path, de)
+			}
+		}
+		return nil
+	}
+
+	if err := traverse(path, nil); err != nil {
+		return nil, err
+	}
+	list := SortedKeys(files)
+	return list, nil
+}

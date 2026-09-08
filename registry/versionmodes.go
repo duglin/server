@@ -114,8 +114,8 @@ func (vm *ManualVersionMode) newestVersionID(r *Resource, excludeTBD bool) (stri
 	}
 
 	base := `
-                SELECT v.UID FROM Versions AS v
-                WHERE v.RegistrySID=? AND v.ResourceSID=?`
+        SELECT v.UID FROM Versions AS v
+        WHERE v.ResourceSID=?`
 	if excludeTBD {
 		base += ` AND v.AncestorID<>'` + ANCESTORID_TBD + `'`
 	}
@@ -136,15 +136,15 @@ func (vm *ManualVersionMode) newestVersionID(r *Resource, excludeTBD bool) (stri
 	// fixed it. Root cause of the observed Meta.Epoch drift under
 	// TestMiscConcurrency.
 	notReferenced := `
-                  AND NOT EXISTS (
-                    SELECT 1 FROM Versions AS v2
-                    WHERE v2.ResourceSID=v.ResourceSID AND
-                          v2.AncestorID=v.UID AND v2.SID<>v.SID` + lockExpr + `)`
+        AND NOT EXISTS (
+          SELECT 1 FROM Versions AS v2
+          WHERE v2.ResourceSID=v.ResourceSID AND
+                v2.AncestorID=v.UID AND v2.SID<>v.SID` + lockExpr + `)`
 	order := `
-                ORDER BY v.CreatedAt DESC, v.UID ` + FILTER_CI_COLLATE + ` DESC
-                LIMIT 1`
+        ORDER BY v.CreatedAt DESC, v.UID ` + FILTER_CI_COLLATE + ` DESC
+        LIMIT 1`
 
-	results := Query(r.tx, base+notReferenced+order+lockExpr, r.Registry.DbSID, r.DbSID)
+	results := Query(r.tx, base+notReferenced+order+lockExpr, r.DbSID)
 	row := results.NextRow()
 	results.Close()
 
@@ -167,7 +167,7 @@ func (vm *ManualVersionMode) newestVersionID(r *Resource, excludeTBD bool) (stri
 	// later EnsureCircularReferences() call be the one to authoritatively
 	// decide if this is actually a problem once the rest of validation
 	// (including any max-versions eviction) has run.
-	results = Query(r.tx, base+order+lockExpr, r.Registry.DbSID, r.DbSID)
+	results = Query(r.tx, base+order+lockExpr, r.DbSID)
 	defer results.Close()
 
 	row = results.NextRow()
