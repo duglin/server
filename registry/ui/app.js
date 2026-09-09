@@ -429,17 +429,23 @@ function optHomeGroup()   {
 function optHomeLayouts() {
   // Migrate legacy single homeLayout → per-group object
   if (_opts.homeLayout !== undefined && !_opts.homeLayouts) {
-    _opts.homeLayouts = {registry: _opts.homeLayout, types: 'grid'};
+    _opts.homeLayouts = {registry: _opts.homeLayout, types: 'flatlist'};
     delete _opts.homeLayout;
     saveOpts();
   }
-  return _opts.homeLayouts || {registry: 'grid', types: 'grid'};
+  return _opts.homeLayouts || {registry: 'grid', types: 'flatlist'};
 }
 function currentHomeLayout() {
   // Home 'types' (cross-registry Group Types) page: Grid view has been
-  // removed — always List, regardless of any previously-saved preference.
-  // See plan.md "Grid view removed".
-  if (_state.homeGroup === 'types') return 'table';
+  // removed (see plan.md "Grid view removed") — its own persisted layout
+  // instead toggles between 'flatlist' (today's bubble/row-card list —
+  // see renderHomeFlatList()) and 'flattable' (sortable-column table —
+  // see renderHomeTypesTable()), defaulting to 'flatlist' so existing
+  // users see no change until they explicitly switch.
+  if (_state.homeGroup === 'types') {
+    var tl = (_state.homeLayouts || {}).types;
+    return (tl === 'flattable') ? 'flattable' : 'flatlist';
+  }
   return (_state.homeLayouts || {})[_state.homeGroup] || 'grid';
 }
 
@@ -1961,7 +1967,8 @@ function computeEnableEdit() {
 // single view-toggle button (renderHeader()) and the kebab "more" menu's
 // narrow-screen fallback entries (buildMoreMenuItems()), so both always
 // render identical icons for a given view.
-var VIEW_LABELS = {grid: 'Grid view', table: 'List view', json: 'JSON view'};
+var VIEW_LABELS = {grid: 'Grid view', table: 'List view', json: 'JSON view',
+                    flatlist: 'List view', flattable: 'Table view'};
 var _headerOtherView = null; // the single "other" view the toggle button currently
                               // offers to switch to; set by renderHeader(), read by
                               // toggleDataView().
@@ -1974,16 +1981,68 @@ var _xregDataMenuAvailable = false; // whether the current page supports the
                                      // renderHeader(), read by buildMoreMenuItems()).
 function viewIconHtml(v, small) {
   if (v === 'grid')  return '<span class="' + (small ? 'popup-icon-grid' : 'hv-grid-icon') + '"><span></span><span></span><span></span><span></span></span>';
-  if (v === 'table') return '<svg class="' + (small ? 'popup-icon-table' : 'hv-table-icon') + '" width="18" height="14" viewBox="0 0 18 14" fill="none" xmlns="http://www.w3.org/2000/svg">'
-    + '<rect x="0.75" y="0.75" width="16.5" height="12.5" rx="2" stroke="currentColor" stroke-width="1.3"/>'
-    + '<rect x="0.75" y="0.75" width="16.5" height="3.6" rx="1.4" fill="currentColor" fill-opacity="0.3"/>'
-    + '<path d="M0.75 4.35H17.25" stroke="currentColor" stroke-width="1.1"/>'
-    + '<path d="M5.6 0.75V13.25" stroke="currentColor" stroke-width="1.1"/>'
-    + '<path d="M0.75 7.85H17.25" stroke="currentColor" stroke-width="1"/>'
-    + '<path d="M0.75 11.05H17.25" stroke="currentColor" stroke-width="1"/>'
-    + '</svg>';
+  if (v === 'table') {
+    // The Home Registry tab's "List view" (card-list rows, NOT a literal
+    // HTML table — see renderHomeTable()) shares this same 'table' state
+    // key with the data-section's genuinely tabular List view (Group/
+    // Resource/Version collections, etc), but the two need visually
+    // distinct icons — a spreadsheet icon would misrepresent the card-
+    // list rows. Reads _state directly (same convention as
+    // effectiveXregFocused() etc) since both call sites (renderHeader(),
+    // buildMoreMenuItems()) always invoke this while _state reflects the
+    // current page.
+    var isHomeRegistryTab = _state.view === 'home' && _state.homeGroup !== 'types';
+    if (isHomeRegistryTab) return bubbleListIconHtml(small);
+    return '<svg class="' + (small ? 'popup-icon-table' : 'hv-table-icon') + '" width="18" height="14" viewBox="0 0 18 14" fill="none" xmlns="http://www.w3.org/2000/svg">'
+      + '<rect x="0.75" y="0.75" width="16.5" height="12.5" rx="2" stroke="currentColor" stroke-width="1.3"/>'
+      + '<rect x="0.75" y="0.75" width="16.5" height="3.6" rx="1.4" fill="currentColor" fill-opacity="0.3"/>'
+      + '<path d="M0.75 4.35H17.25" stroke="currentColor" stroke-width="1.1"/>'
+      + '<path d="M5.6 0.75V13.25" stroke="currentColor" stroke-width="1.1"/>'
+      + '<path d="M0.75 7.85H17.25" stroke="currentColor" stroke-width="1"/>'
+      + '<path d="M0.75 11.05H17.25" stroke="currentColor" stroke-width="1"/>'
+      + '</svg>';
+  }
   if (v === 'json')  return '<span class="' + (small ? 'popup-icon-json' : 'hv-json-sym') + '">{}</span>';
+  // Home "Group Types" page's own List view icon (see currentHomeLayout()/
+  // renderHomeFlatList()) — same bubble-list icon as the Home Registry
+  // tab's List view (see bubbleListIconHtml()), since both pages render a
+  // very similar bubble/row-card layout.
+  if (v === 'flatlist') return bubbleListIconHtml(small);
+  // Home "Group Types" page's Table view icon (see renderHomeTypesTable())
+  // — a plain sharp-cornered rectangle frame with 3 gray horizontal
+  // divider lines, evoking a spreadsheet grid without borrowing the
+  // data-section's rounded/shaded 'table' icon above (kept visually
+  // distinct so the two "table"-ish icons in this app never look alike).
+  if (v === 'flattable') return gridLinesIconHtml(small);
   return '';
+}
+
+// Shared "bubble list" icon — 3 stacked wide, hollow (outline-only)
+// rounded-rectangle bars with a visible gap between them, evoking a list
+// of rows/bubbles rather than a hamburger menu's solid lines or a literal
+// spreadsheet grid. Used by both the Home Registry tab's List view and
+// the Home "Group Types" page's List view (see viewIconHtml()).
+function bubbleListIconHtml(small) {
+  return '<span class="' + (small ? 'popup-icon-list' : 'hv-list-icon') + '"><span></span><span></span><span></span></span>';
+}
+
+// "Table view" icon for the Home "Group Types" page — a sharp-cornered
+// (not rounded) black rectangle frame containing 3 solid gray horizontal
+// lines plus 1 vertical divider, giving the plain appearance of a grid/
+// spreadsheet. Deliberately
+// fixed black/gray colors (not currentColor) per its own design spec,
+// unlike every other icon in this file — so it does NOT pick up the
+// hover/active blue tint the other view icons get; that's an accepted
+// trade-off for this one icon.
+function gridLinesIconHtml(small) {
+  var size = small ? 12 : 17;
+  return '<svg class="' + (small ? 'popup-icon-gridlines' : 'hv-gridlines-icon') + '" width="' + size + '" height="' + size + '" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">'
+    + '<rect x="1" y="1" width="14" height="14" fill="none" stroke="black" stroke-width="1.4"/>'
+    + '<line x1="1" y1="5.33" x2="15" y2="5.33" stroke="#888" stroke-width="1.1"/>'
+    + '<line x1="1" y1="8.67" x2="15" y2="8.67" stroke="#888" stroke-width="1.1"/>'
+    + '<line x1="1" y1="12" x2="15" y2="12" stroke="#888" stroke-width="1.1"/>'
+    + '<line x1="8" y1="1" x2="8" y2="15" stroke="#888" stroke-width="1.1"/>'
+    + '</svg>';
 }
 
 // Small colored (black + xRegistry-blue) "xR" icon for the "Show/Hide xReg
@@ -2030,9 +2089,13 @@ function renderHeader() {
   //                                 always read-only (server-declared schema document)
   //   xregistry                   — no grid (list-style viewer only), list+json available;
   //                                 always read-only (server-declared discovery document)
-  //   home 'types' (cross-registry Group Types list) — Grid removed, List
-  //                                 only; home 'registry' (list of known
-  //                                 registries) is unaffected.
+  //   home 'types' (cross-registry Group Types list) — Grid removed; now
+  //                                 offers its own List/Table pair instead
+  //                                 (flatlist/flattable — see
+  //                                 currentHomeLayout()), independent of
+  //                                 the Grid/List/JSON triple used
+  //                                 everywhere else; home 'registry' (list
+  //                                 of known registries) is unaffected.
   var section          = _state.section;
   var isModelSection    = isData && (section === 'model' || section === 'modelsource');
   var isCapSection      = isData && (section === 'capabilities');
@@ -2042,11 +2105,13 @@ function renderHeader() {
     || isXRegistrySection;
 
   var enableGrid, enableList, enableJson;
+  var isHomeTypes = isHome && _state.homeGroup === 'types';
   if (isConfig) {
     enableGrid = enableList = enableJson = false;
+  } else if (isHomeTypes) {
+    enableGrid = enableList = enableJson = false; // handled separately below
   } else if (isHome) {
-    var isHomeTypes = _state.homeGroup === 'types';
-    enableGrid = !isHomeTypes; enableList = true; enableJson = false;
+    enableGrid = true; enableList = true; enableJson = false;
   } else if (isListOnlySection) {
     enableGrid = false; enableList = true; enableJson = true;
   } else {
@@ -2059,10 +2124,14 @@ function renderHeader() {
   // one "other" view to offer. The button always shows the DESTINATION
   // view's icon/title (design "1b" — click switches to whatever's shown),
   // not the currently-active one, and hides entirely when there's no
-  // other view to switch to (e.g. Config page; Home "types" group, which
-  // only ever offers List).
+  // other view to switch to (e.g. Config page). Home "types" gets its own
+  // independent List/Table pair (flatlist/flattable) instead of Grid/
+  // List/JSON — same "always exactly one other view" shape, just a
+  // different pair of view keys.
   var enabledViews = [];
-  if (!isConfig) {
+  if (isHomeTypes) {
+    enabledViews = ['flatlist', 'flattable'];
+  } else if (!isConfig) {
     if (enableGrid) enabledViews.push('grid');
     if (enableList) enabledViews.push('table');
     if (enableJson) enabledViews.push('json');
@@ -2385,7 +2454,7 @@ function setDataView(v) {
   // click.
   if (_state.view === 'home') {
     _state.homeLayouts[_state.homeGroup] = v;
-    if (!_opts.homeLayouts) _opts.homeLayouts = {registry: 'grid', types: 'grid'};
+    if (!_opts.homeLayouts) _opts.homeLayouts = {registry: 'grid', types: 'flatlist'};
     _opts.homeLayouts[_state.homeGroup] = v;
     saveOpts();
   }
@@ -3715,7 +3784,11 @@ function renderHome() {
     return;
   }
   if (g === 'types') {
-    renderHomeFlatList(main, allServers); // Grid removed for this page — always List
+    // Own List/Table pair (flatlist/flattable — see currentHomeLayout()),
+    // independent of the Grid/List/JSON triple used everywhere else; Grid
+    // itself remains removed for this page (see plan.md "Grid view
+    // removed").
+    l === 'flattable' ? renderHomeTypesTable(main, allServers) : renderHomeFlatList(main, allServers);
   } else {
     l === 'table' ? renderHomeTable(main, allServers, favorites.length) : renderHomeGrid(main, allServers, favorites.length);
   }
@@ -3788,6 +3861,8 @@ function renderHomeTable(main, servers, favCount) {
     var sv = (url === DEFAULT_SERVER_ORIGIN) ? '' : url;
     var href = buildURL(Object.assign({}, _state, {view: 'table', serverURL: sv, section: 'data', path: []}));
     html += '<div class="reg-row" data-server-url="' + esc(url) + '">'
+      + '<button type="button" class="reg-row-menu-btn" title="More actions" '
+      +   'onclick="toggleServerCardMenu(event, this, ' + esc(JSON.stringify(url)) + ')">\u22ef</button>'
       + '<img src="registry-icon.svg" class="reg-row-icon" alt="" width="20" height="20">'
       + '<div class="reg-row-main">'
       +   '<div class="reg-row-title">'
@@ -3899,6 +3974,38 @@ function groupTypePillHTML(serverUrl, c) {
   return '<a class="group-type-item" href="' + esc(href) + '" onclick="' + esc(onclick) + '"' + titleAttr + '>' + esc(c.plural) + ' (' + c.count + ')</a>';
 }
 
+// Probes every given server and flattens each into one row per group type
+// found there — shared by both the Home "Group Types" page's List view
+// (renderHomeFlatList()) and its new Table view (renderHomeTypesTable()),
+// so the two views never drift out of sync on what counts as a row or
+// which fields are available. Each row is NOT a merged/deduplicated
+// "group type" — it's one specific group-type-as-it-exists-in-one-registry
+// (no cross-registry merging is done, since like-named group types on
+// different registries could have entirely different model definitions).
+// cb(rows) is called once every server has settled (probe failures simply
+// contribute no rows for that server); rows arrive in probe-completion
+// order, NOT pre-sorted — callers sort as appropriate for their own view.
+function collectGroupTypeRows(servers, cb) {
+  var pending = servers.length;
+  var rows = [];
+  if (pending === 0) { cb(rows); return; }
+  servers.forEach(function(url) {
+    probeRegistry(url, function(info) {
+      if (!info.error) {
+        var label = info.label || serverLabel(url);
+        info.colls.forEach(function(c) {
+          rows.push({plural: c.plural, count: c.count, resources: c.resources || [],
+                     description: c.description || '', serverUrl: url, regLabel: label,
+                     regIcon: info.icon || '', icon: c.icon || '', url: c.url,
+                     warnings: info.warnings || []});
+        });
+      }
+      pending--;
+      if (pending === 0) cb(rows);
+    });
+  });
+}
+
 function renderHomeFlatList(main, servers) {
   // Card-list design mirroring the Registries List redesign (see plan.md
   // "List view visual redesign for Registries home page"). Each row here
@@ -3913,10 +4020,7 @@ function renderHomeFlatList(main, servers) {
     + '<div class="gt-row-loading" style="color:#aaa;font-size:13px">Loading…</div>'
     + '</div></div>';
 
-  var pending = servers.length;
-  var allRows = [];
-
-  function finish() {
+  collectGroupTypeRows(servers, function(allRows) {
     allRows.sort(function(a, b) {
       var n = a.plural.localeCompare(b.plural);
       return n !== 0 ? n : a.regLabel.localeCompare(b.regLabel);
@@ -3961,30 +4065,138 @@ function renderHomeFlatList(main, servers) {
         +     '<span class="gt-row-reg-name">' + esc(r.regLabel) + '</span>'
         +   '</a>'
         +   (r.warnings && r.warnings.length
-                ? '<span class="gt-row-warn-badge" title="' + esc(r.warnings.join(' ') + ' — click to view details') + '" onclick="' + esc(regOnclick) + '">!</span>'
+                ? '<span class="server-card-warn-badge" title="' + esc(r.warnings.join(' ') + ' — click to view details') + '" onclick="' + esc(regOnclick) + '">!</span>'
                 : '')
         +   '<span class="gt-row-url" title="' + esc(r.serverUrl) + '">' + esc(r.serverUrl) + '</span>'
         + '</div>'
         + '</div>';
     }).join('');
+  });
+}
+
+// Sort state for the Home "Group Types" page's Table view (see
+// renderHomeTypesTable()) — persisted in-memory only, same "resets each
+// full render" convention as the Config page's _cfgSortCol/_cfgSortDir
+// (see cfgSortBy()). Independent of that variable (and of the plain data
+// grid's _sortCol/_sortAsc) since all three sort completely different
+// tables.
+var _gtSortCol = 'plural';
+var _gtSortDir = 'asc';
+
+// Builds one sortable <th> for the Table view — mirrors cfgSortHeaderHTML()
+// exactly, just wired to gtSortBy()/_gtSortCol/_gtSortDir instead.
+function gtSortHeaderHTML(col, label, extraAttrs) {
+  var arrow = '';
+  if (_gtSortCol === col) {
+    arrow = '<span class="cfg-sort-arrow">' + (_gtSortDir === 'asc' ? '\u25B2' : '\u25BC') + '</span>';
   }
+  return '<th class="cfg-sortable"' + (extraAttrs || '') + ' onclick="gtSortBy(\'' + col + '\')">'
+    + esc(label) + arrow + '</th>';
+}
 
-  if (pending === 0) { finish(); return; }
+// Handles a click on a Table-view column header — toggles direction if the
+// same column is clicked again, otherwise switches to the new column
+// defaulting to ascending. Re-renders via renderHome() (not just the
+// table) for simplicity, same as cfgSortBy()/renderConfig(); the
+// underlying probe data is cached (see _registryProbeCache) so this stays
+// fast.
+function gtSortBy(col) {
+  if (_gtSortCol === col) {
+    _gtSortDir = (_gtSortDir === 'asc') ? 'desc' : 'asc';
+  } else {
+    _gtSortCol = col;
+    _gtSortDir = 'asc';
+  }
+  renderHome();
+}
 
-  servers.forEach(function(url) {
-    probeRegistry(url, function(info) {
-      if (!info.error) {
-        var label = info.label || serverLabel(url);
-        info.colls.forEach(function(c) {
-          allRows.push({plural: c.plural, count: c.count, resources: c.resources || [],
-                        description: c.description || '', serverUrl: url, regLabel: label,
-                        regIcon: info.icon || '', icon: c.icon || '', url: c.url,
-                        warnings: info.warnings || []});
-        });
-      }
-      pending--;
-      if (pending === 0) finish();
-    });
+// Returns the sort-key value for one row/column, used by gtSortedRows().
+function gtSortKeyFor(row, col) {
+  switch (col) {
+    case 'count':     return row.count;
+    case 'registry':  return row.regLabel.toLowerCase();
+    case 'resources': return row.resources.map(function(res) { return res.plural; }).join(',').toLowerCase();
+    case 'plural':
+    default:          return row.plural.toLowerCase();
+  }
+}
+
+// Sorts the Table view's rows per the current _gtSortCol/_gtSortDir, with
+// a stable ID/registry tie-breaker so equal-value rows don't visibly
+// reshuffle between renders — same pattern as cfgSortedServerUrls().
+function gtSortedRows(rows) {
+  var col = _gtSortCol, dir = _gtSortDir;
+  return rows.slice().sort(function(a, b) {
+    var ka = gtSortKeyFor(a, col), kb = gtSortKeyFor(b, col);
+    var cmp = (typeof ka === 'number' && typeof kb === 'number') ? ka - kb : String(ka).localeCompare(String(kb));
+    if (cmp === 0) {
+      cmp = a.plural.localeCompare(b.plural) || a.regLabel.localeCompare(b.regLabel);
+    }
+    return dir === 'desc' ? -cmp : cmp;
+  });
+}
+
+// Table view for the Home "Group Types" page (see currentHomeLayout()'s
+// 'flattable' layout) — the same rows as renderHomeFlatList()'s List view
+// (see collectGroupTypeRows()), presented instead as a real sortable
+// <table> (reusing the Config page's .config-table/.cfg-sortable look —
+// see cfgSortHeaderHTML()) for users who prefer a denser, column-aligned
+// layout. Columns: Icon, ID, Count, Registry (+ warning icon), Resource
+// Types. The server URL and registry description are deliberately left
+// off here (see plan.md) — both tend to be too long to fit a table
+// column cleanly; they're still available via the List view or by
+// following the ID/Registry links.
+function renderHomeTypesTable(main, servers) {
+  main.innerHTML = '<div class="home-page"><div id="gt-table-wrap">'
+    + '<div class="gt-row-loading" style="color:#aaa;font-size:13px">Loading…</div>'
+    + '</div></div>';
+
+  collectGroupTypeRows(servers, function(allRows) {
+    var wrap = el('gt-table-wrap');
+    if (!wrap) return;
+    if (allRows.length === 0) {
+      wrap.innerHTML = '<div class="gt-row-loading" style="font-style:italic">No group types found</div>';
+      return;
+    }
+    var rows = gtSortedRows(allRows);
+    var html = '<table class="config-table gt-table"><thead><tr>'
+      + '<th class="gt-table-icon-th"></th>'
+      + gtSortHeaderHTML('plural', 'Group Type')
+      + gtSortHeaderHTML('count', 'Count')
+      + gtSortHeaderHTML('registry', 'Registry')
+      + gtSortHeaderHTML('resources', 'Resource Types')
+      + '</tr></thead><tbody>';
+    html += rows.map(function(r) {
+      var onclick = guardedOnclick('browseGroupCollection(' + JSON.stringify(r.serverUrl) + ',' + JSON.stringify(r.plural) + ',' + JSON.stringify(r.url) + ')');
+      var sv = (r.serverUrl === DEFAULT_SERVER_ORIGIN) ? '' : r.serverUrl;
+      var href = buildURL(Object.assign({}, _state, {view: 'table', serverURL: sv, section: 'data', path: [r.plural], apiURL: r.url || ''}));
+      var regHref = buildURL(Object.assign({}, _state, {view: 'table', serverURL: sv, section: 'data', path: []}));
+      var regOnclick = guardedOnclick('doBrowse(' + JSON.stringify(r.serverUrl) + ')');
+      var titleAttr = r.description ? ' title="' + esc(r.description) + '"' : '';
+      return '<tr>'
+        + '<td class="gt-table-icon-cell">'
+        +   '<img src="' + esc(r.icon || r.regIcon || 'registry-icon.svg') + '" width="20" height="20" alt="" onerror="this.onerror=null;this.src=\'registry-icon.svg\'">'
+        + '</td>'
+        + '<td><a class="gt-table-name" href="' + esc(href) + '" onclick="' + esc(onclick) + '"' + titleAttr + '>' + esc(r.plural) + '</a></td>'
+        + '<td class="gt-table-count">' + r.count + '</td>'
+        + '<td>'
+        +   '<a class="gt-table-registry" href="' + esc(regHref) + '" onclick="' + esc(regOnclick) + '" title="Browse this registry">' + esc(r.regLabel) + '</a>'
+        +   (r.warnings && r.warnings.length
+                ? '<span class="server-card-warn-badge" title="' + esc(r.warnings.join(' ') + ' — click to view details') + '" onclick="' + esc(regOnclick) + '">!</span>'
+                : '')
+        + '</td>'
+        + '<td class="gt-table-resources">'
+        +   (r.resources.length
+                ? r.resources.map(function(res) {
+                    var resTitleAttr = res.description ? ' title="' + esc(res.description) + '"' : '';
+                    return '<span' + resTitleAttr + '>' + esc(res.plural) + '</span>';
+                  }).join(', ')
+                : '<span class="group-type-none">none</span>')
+        + '</td>'
+        + '</tr>';
+    }).join('');
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
   });
 }
 
@@ -4056,6 +4268,8 @@ function serverCard(url) {
     + '<div class="server-card-title">'
     +   '<img src="registry-icon.svg" class="server-card-icon" alt="" width="16" height="16">'
     +   '<a class="server-card-name" href="' + esc(href) + '" onclick="return serverCardClick(event,this.closest(\'.server-card\'),' + esc(JSON.stringify(url)) + ')">' + esc(serverLabel(url)) + '</a>'
+    +   '<button type="button" class="server-card-menu-btn" title="More actions" '
+    +     'onclick="toggleServerCardMenu(event, this, ' + esc(JSON.stringify(url)) + ')">\u22ef</button>'
     + '</div>'
     + '<div class="server-card-desc" style="display:none"></div>'
     + '<hr class="server-card-divider">'
@@ -4226,6 +4440,83 @@ function serverCardClick(e, card, url) {
   if (card.querySelector('.server-card-err-badge')) return false;
   doBrowse(url);
   return false;
+}
+
+// Returns the exact same circular-arrow refresh icon SVG markup used by
+// the header's global #home-refresh-btn (see index.html) — reused here so
+// the Home Grid/List card "..." menus' "Refresh" item shows the identical
+// icon/arrow orientation everywhere, rather than a second hand-drawn
+// refresh glyph that could visually drift out of sync over time.
+function refreshIconSvgHtml() {
+  return '<svg class="popup-icon-refresh-svg" width="14" height="14" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    + '<path d="M14.5 8.5A6 6 0 1 1 12.4 3.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/>'
+    + '<path d="M12.1 1.6L12.6 4.3L9.9 4.7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+    + '</svg>';
+}
+
+// ---- Home Grid card "..." menu ---------------------------------------------
+//
+// The small "..." button rendered in every Home Grid card's top-right
+// corner (see serverCard()) — reuses the exact same shared #header-popup
+// mechanism as the kebab/breadcrumb/URL-value "..." menus (see
+// toggleUrlAddMenu() above) rather than building a second popup widget.
+function toggleServerCardMenu(e, btn, url) {
+  e.stopPropagation();
+  var fav = isFavorite(url);
+  var items = [
+    {label: 'Refresh', onclick: esc('svCardMenuRefresh(' + JSON.stringify(url) + ')'), icon: refreshIconSvgHtml()},
+    {
+      label: fav ? 'Remove as Favorite' : 'Add as Favorite',
+      onclick: esc('svCardMenuToggleFavorite(' + JSON.stringify(url) + ')'),
+      icon: '<span class="popup-icon-star">' + (fav ? '\u2605' : '\u2606') + '</span>'
+    },
+    {label: 'Scan for Registries', onclick: esc('svCardMenuScan(' + JSON.stringify(url) + ')'), icon: '<span class="popup-icon-search">&#128269;</span>'},
+    {label: 'Delete\u2026', onclick: esc('svCardMenuDelete(' + JSON.stringify(url) + ')'), icon: '<span class="popup-icon-trash">&#128465;</span>'}
+  ];
+  toggleHeaderPopup(btn, items, true);
+}
+
+// "Refresh" card menu action — forces a fresh re-probe of just this one
+// registry (unlike the global Home "Refresh" button/doHomeRefresh(),
+// which wipes the entire probe cache) and re-renders Home so the card
+// picks up the new data.
+function svCardMenuRefresh(url) {
+  invalidateRegistryProbe(url);
+  refresh();
+}
+
+// "Add/Remove as Favorite" card menu action — mirrors the Config page's
+// Favorites-table star toggle (see cfgSetFavorite()), just reachable from
+// the Home Grid card itself instead of the Config page.
+function svCardMenuToggleFavorite(url) {
+  setFavorite(url, !isFavorite(url));
+  refresh();
+}
+
+// "Scan for Registries" card menu action — same underlying scan/review
+// flow as the Config page's bulk "Scan for registries" action (see
+// cfgScanSelected()), just scoped to this one card's server as the sole
+// discovery source and reusing the same "Scan Results" review dialog
+// (cfgShowScanResults()) so both entry points behave identically.
+function svCardMenuScan(url) {
+  discoverRegistriesFrom([url], function(results) {
+    cfgShowScanResults(results);
+  });
+}
+
+// "Delete..." card menu action — same full-teardown semantics as the
+// Config page's per-row/bulk delete (removeServer()/setLocalServerDeleted()
+// — see cfgDeleteSelected()), gated behind a plain confirm() dialog,
+// matching every other destructive action's confirmation convention in
+// this codebase (e.g. deleteDataEntity()).
+function svCardMenuDelete(url) {
+  if (!confirm('Delete "' + serverLabel(url) + '" from your configured registries? This cannot be undone.')) return;
+  if (normalizeURL(url) === normalizeURL(DEFAULT_SERVER_ORIGIN)) {
+    setLocalServerDeleted(true);
+  } else {
+    removeServer(url);
+  }
+  refresh();
 }
 
 // ---- Config page ----------------------------------------------------------

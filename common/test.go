@@ -65,12 +65,13 @@ func MaskLogs(input string) string {
 
 func XEqual(t *testing.T, extra string, gotAny any, expAny any, flags ...string) {
 	t.Helper()
-	pos := 0
+	// pos := 0
+	sep := "============================================================"
 
 	exp := fmt.Sprintf("%v", expAny)
 	got := fmt.Sprintf("%v", gotAny)
 
-	orig := "\nRawGot:\n" + got + "\n"
+	orig := "\nRawGot: " + sep + "\n" + got + "\n"
 
 	// Should only be used in extreme cases. By default we should check
 	// all output byte-for-byte
@@ -150,41 +151,42 @@ func XEqual(t *testing.T, extra string, gotAny any, expAny any, flags ...string)
 		exp = SavedREs[REG_SHORTSELF].ReplaceAllString(exp, `"shortself": "xxx"`)
 	}
 
-	for pos < len(got) && pos < len(exp) && got[pos] == exp[pos] {
-		pos++
-	}
-	if pos == len(got) && pos == len(exp) {
-		return
-	}
+	/*
+			for pos < len(got) && pos < len(exp) && got[pos] == exp[pos] {
+				pos++
+			}
+			if pos == len(got) && pos == len(exp) {
+				return
+			}
 
-	if pos == len(got) {
-		t.Fatalf(extra+orig+
-			"\nExpected:\n"+exp+
-			"\nGot:\n"+got+
-			"\nGot ended early at(%d)[%02X]:\n%q",
-			pos, exp[pos], got[pos:])
-	}
+			if pos == len(got) {
+				t.Fatalf(extra+orig+
+					"\nExpected:\n"+exp+
+					"\nGot:\n"+got+
+					"\nGot ended early at(%d)[%02X]:\n%q",
+					pos, exp[pos], got[pos:])
+			}
 
-	if pos == len(exp) {
-		t.Fatalf(extra+orig+
-			"\nExpected:\n"+exp+
-			"\nGot:\n"+got+
-			"\nExp ended early at(%d)[%02X]:\n"+got[pos:],
-			pos, got[pos])
-	}
+			if pos == len(exp) {
+				t.Fatalf(extra+orig+
+					"\nExpected:\n"+exp+
+					"\nGot:\n"+got+
+					"\nExp ended early at(%d)[%02X]:\n"+got[pos:],
+					pos, got[pos])
+			}
 
-	expMax := pos + 90
-	if expMax > len(exp) {
-		expMax = len(exp)
-	}
+		expMax := pos + 90
+		if expMax > len(exp) {
+			expMax = len(exp)
+		}
+	*/
 
-	t.Fatalf(extra+orig+
-		"\nExpected:\n"+exp+
-		"\nGot:\n"+got+
-		"\nDiff at(%d)[x%0x/x%0x]:"+
-		"\nExp subset:\n"+exp[pos:expMax]+
-		"\nGot:\n"+got[pos:],
-		pos, exp[pos], got[pos])
+	diff := Diff("Exp", exp, "Got", got)
+	if diff != "" {
+		t.Fatalf("%s%s\nExp: "+sep+"\n"+"%s\nGot: "+sep+
+			"\n%s\nDiff: "+sep+"\n%s",
+			extra, orig, exp, got, diff)
+	}
 }
 
 // got, any

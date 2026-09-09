@@ -74,7 +74,7 @@ Notes:
 		"HTML to add in <head> (data,@FILE,@URL,@-)")
 	downloadCmd.Flags().StringP("md2html-html", "", "",
 		"HTML to add after <head> (data,@FILE,@URL,@-)")
-	downloadCmd.Flags().BoolP("min", "m", false,
+	downloadCmd.Flags().BoolP("min", "", false,
 		"Minimize the data (e.g. no collection json)")
 	downloadCmd.Flags().BoolP("capabilities", "c", false,
 		"Modify capabilities for static site")
@@ -321,18 +321,19 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 			gm := reg.Model.Groups[xid.Group]
 			rm := gm.Resources[xid.Resource]
 
-			vCount, _ := AnyToUInt(obj["versionscount"])
-			if ok && minimal && vCount == 1 {
+			if rm.GetMaxVersions() == 1 {
+				delete(obj, rm.Singular+"id")
+				delete(obj, "versionid")
 				delete(obj, "ancestorid")
-				// delete(obj, "versionid")
+				delete(obj, "isdefault")
+				delete(obj, "metaurl")
+				delete(obj, "versionscount")
+				delete(obj, "versionsurl")
+			} else {
+				for attr, _ := range obj {
+					delete(obj, attr)
+				}
 			}
-
-			delete(obj, rm.Singular+"id")
-			delete(obj, "versionid")
-			delete(obj, "isdefault")
-			delete(obj, "metaurl")
-			delete(obj, "versionsurl")
-			delete(obj, "versionscount")
 
 		case ENTITY_META:
 			gm := reg.Model.Groups[xid.Group]
@@ -346,7 +347,6 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 					delete(obj, "readonly")
 				}
 				if obj["defaultversionsticky"] == false {
-					// delete(obj, "defaultversionid")
 					delete(obj, "defaultversionsticky")
 				}
 			}
@@ -441,9 +441,9 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 					"error_detail="+err.Error()))
 			}
 
-			if minimal && xid.Type == ENTITY_VERSION_TYPE && len(tmp) == 1 {
-				break
-			}
+			// if minimal && xid.Type == ENTITY_VERSION_TYPE && len(tmp) == 1 {
+			// break
+			// }
 
 			vList := SortedKeys(tmp)
 			for _, vName := range vList {
@@ -480,7 +480,7 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 			Error(xErr)
 
 			// If !hasDoc then at least show {} for the resource
-			if !minimal || len(obj) > 0 || !rm.GetHasDocument() {
+			if !minimal && len(obj) > 0 { // || !rm.GetHasDocument() {
 				fn := root + xid.String() + "$details"
 				Write(fn, data)
 				if !minimal {
@@ -488,7 +488,7 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 				}
 			}
 
-			if rm.GetHasDocument() {
+			if !minimal && rm.GetHasDocument() {
 				fn := root + xid.String() + "/" + indexFile
 				data, hdr := Download(reg, xid.String())
 				Write(fn, data)
@@ -504,17 +504,16 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 					}
 					noDiffHeaders(hdr)
 
-					if !minimal {
-						fn = root + xid.String() + ".hdr"
-						str := ""
-						for _, k := range SortedKeys(hdr) {
-							// Assume just one value per header
-							str += fmt.Sprintf("%s:%s\n", k, hdr[k])
-						}
-						Write(fn, []byte(str))
+					fn = root + xid.String() + ".hdr"
+					str := ""
+					for _, k := range SortedKeys(hdr) {
+						// Assume just one value per header
+						str += fmt.Sprintf("%s:%s\n", k, hdr[k])
 					}
+					Write(fn, []byte(str))
 				}
 
+				// Now create the html file if needed
 				fn = root + xid.String()
 				if md2html && strings.HasSuffix(fn, ".md") {
 					fn = fn[:len(fn)-2] + "html"
@@ -579,7 +578,8 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 						header += md2htmlHeader + "\n"
 					}
 					if header != "" {
-						html.Write([]byte("<head>\n" + header + "</head>\n"))
+						html.Write([]byte("<head>\n" + header +
+							"\n</head>\n"))
 					}
 
 					// Custom HTML after <head>
@@ -592,13 +592,12 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 
 					// Do the actual conversion from md->html
 					md.Convert(data, &html)
-
 					html.Write([]byte("\n</html>\n"))
 
 					Error(os.WriteFile(fn, html.Bytes(), 0644))
-				}
+				} // EO-html file generation
 			} else {
-				if !minimal {
+				if !minimal || len(obj) > 0 {
 					fn := root + xid.String() + "/" + indexFile
 					Write(fn, data)
 					if !minimal {
@@ -629,7 +628,7 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 			Error(xErr)
 
 			// If !hasDoc then at least show {} for the version
-			if !minimal || len(obj) > 0 || !rm.GetHasDocument() {
+			if len(obj) > 0 || !minimal || !rm.GetHasDocument() {
 				fn := root + xid.String() + "$details"
 				Write(fn, data)
 				if !minimal {
@@ -642,34 +641,109 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 				data, hdr := Download(reg, xid.String())
 				Write(fn, data)
 
-				if hdr != nil {
-					self := host + xid.String()[1:]
-					hdr["xregistry-self"] = self
-					if hdr["content-location"] != "" {
-						hdr["content-location"] = self
-					}
-					noDiffHeaders(hdr)
-
-					if !minimal {
-						fn = root + xid.String() + ".hdr"
-						str := ""
-						for _, k := range SortedKeys(hdr) {
-							// Assume just one value per header
-							str += fmt.Sprintf("%s:%s\n", k, hdr[k])
+				if !minimal {
+					if hdr != nil {
+						self := host + xid.String()[1:]
+						hdr["xregistry-self"] = self
+						if hdr["content-location"] != "" {
+							hdr["content-location"] = self
 						}
-						Write(fn, []byte(str))
+						noDiffHeaders(hdr)
+
+						if !minimal {
+							fn = root + xid.String() + ".hdr"
+							str := ""
+							for _, k := range SortedKeys(hdr) {
+								// Assume just one value per header
+								str += fmt.Sprintf("%s:%s\n", k, hdr[k])
+							}
+							Write(fn, []byte(str))
+						}
 					}
 				}
 
-				fn = root + xid.String()
-				if md2html && strings.HasSuffix(fn, ".md") {
-					fn = fn[:len(fn)-2] + "html"
+				if md2html && strings.HasSuffix(xid.ResourceID, ".md") {
+					// Use versionid as base filename, not resourceid
+					fn = root + xid.String() + ".html"
 					html := bytes.Buffer{}
+
+					// Header, if needed
+					header := ""
+
+					if !md2htmlNoStyle {
+						header += "<style>\n" +
+							"  .anchor {\n" +
+							"    font-size: 12px ;\n" +
+							"    vertical-align: middle ;\n" +
+							"    text-decoration: none ;\n" +
+							"  }\n" +
+							"  body {\n" +
+							"    font-family: sans-serif ;\n" +
+							"    font-size: 16px ;\n" +
+							"    line-height: 1.5 ;\n" +
+							"    padding: 5% 10% 5% 10% ;\n" +
+							"  }\n" +
+							"  pre {\n" +
+							"    font-size: 80% ;\n" +
+							"    background-color: #f2f2f2 ;\n" +
+							"    padding: 12px ;\n" +
+							"  }\n" +
+							"  code {\n" +
+							"    font-size: 85% ;\n" +
+							"    background-color: #f2f2f2 ;\n" +
+							"    padding: .2em .4em ;\n" +
+							"  }\n" +
+							"  pre code {\n" +
+							"    font-size: inherit ;\n" +
+							"    background-color: inherit ;\n" +
+							"    padding: 0px ;\n" +
+							"  }\n" +
+							"  table {\n" +
+							"    border: 1px solid lightgray ;\n" +
+							"    border-collapse: collapse ;\n" +
+							"    border-spacing: 0px ;\n" +
+							"    line-height: 24px ;\n" +
+							"  }\n" +
+							"  tr:nth-child(even) {\n" +
+							"    background-color: #f2f2f2 ;\n" +
+							"  }\n" +
+							"  td,th {\n" +
+							"    border: 1px solid lightgray ;\n" +
+							"    padding: 5px ;\n" +
+							"  }\n" +
+							"  td code, th code {\n" +
+							"    font-size: inherit ;\n" +
+							"  }\n" +
+							"</style>\n"
+					}
+					if md2htmlLink != "" {
+						header += `<link rel="stylesheet" href="` +
+							md2htmlLink + `">` + "\n"
+					}
+					if md2htmlHeader != "" {
+						header += md2htmlHeader + "\n"
+					}
+					if header != "" {
+						html.Write([]byte("<head>\n" + header +
+							"\n</head>\n"))
+					}
+
+					// Custom HTML after <head>
+					if md2htmlHTML != "" {
+						html.Write([]byte(md2htmlHTML))
+						if md2htmlHTML[len(md2htmlHTML)-1] != '\n' {
+							html.Write([]byte("\n"))
+						}
+					}
+
+					// Do the actual conversion from md->html
 					md.Convert(data, &html)
+					html.Write([]byte("\n</html>\n"))
+
 					Error(os.WriteFile(fn, html.Bytes(), 0644))
 				}
 			} else {
-				if !minimal {
+				if !minimal && len(obj) > 0 {
 					fn := root + xid.String() + "/" + indexFile
 					Write(fn, data)
 					if !minimal {

@@ -21,6 +21,8 @@ func addGetCmd(parent *cobra.Command) {
 	}
 	getCmd.Flags().StringArrayP("filter", "f", nil, "Filter: expr[,expr]")
 	getCmd.Flags().StringArrayP("inline", "i", nil, "Inline entities: *, ...")
+	getCmd.Flags().Bool("min", false,
+		"Minimize the data (e.g. no *url attributes)")
 	getCmd.Flags().Bool("doc", false, "Retieve document view of entities")
 	getCmd.Flags().StringP("output", "o", "json", "Output format: json*, table")
 	getCmd.Flag("output").DefValue = "" // hide default text
@@ -40,6 +42,7 @@ func getFunc(cmd *cobra.Command, args []string) {
 	filters, _ := cmd.Flags().GetStringArray("filter")
 	inlines, _ := cmd.Flags().GetStringArray("inline")
 	docView, _ := cmd.Flags().GetBool("doc")
+	minimum, _ := cmd.Flags().GetBool("min")
 	output, _ := cmd.Flags().GetString("output")
 	if !ArrayContains([]string{"table", "json"}, output) {
 		Error("--output must be one of: json, table")
@@ -115,6 +118,126 @@ func getFunc(cmd *cobra.Command, args []string) {
 	}
 
 	if output == "json" {
+		minimize := (func(objAny any) *XRError)(nil)
+		minimize = func(objAny any) *XRError {
+			if IsNil(objAny) {
+				return nil
+			}
+			obj, ok := objAny.(map[string]any)
+			if !ok {
+				return nil
+			}
+
+			xidStr, ok := obj["xid"].(string)
+			if !ok {
+				// Not an entity, must be a collection, just iterate
+				for _, nextObj := range obj {
+					Error(minimize(nextObj))
+				}
+				return nil
+			}
+			xid, err := ParseXid(xidStr)
+			Error(err)
+
+			delete(obj, "xid")
+			delete(obj, "self")
+			model, xErr := reg.GetModel()
+			Error(xErr)
+
+			switch xid.Type {
+			case ENTITY_REGISTRY:
+				delete(obj, "specversion")
+				delete(obj, "registryid")
+
+				for _, gm := range model.Groups {
+					delete(obj, gm.Plural+"url")
+					delete(obj, gm.Plural+"count")
+					Error(minimize(obj[gm.Plural]))
+				}
+			case ENTITY_GROUP:
+				gm, _ := model.Groups[xid.Group]
+
+				delete(obj, gm.Singular+"id")
+
+				for _, rm := range gm.Resources {
+					delete(obj, rm.Plural+"url")
+					delete(obj, rm.Plural+"count")
+					Error(minimize(obj[rm.Plural]))
+
+					// If collection is empty, delete it
+					if nextAny, ok := obj[rm.Plural]; ok {
+						if nextObj, ok := nextAny.(map[string]any); ok {
+							if len(nextObj) == 0 {
+								delete(obj, rm.Plural)
+							}
+						}
+					}
+				}
+
+			case ENTITY_RESOURCE:
+				gm, _ := model.Groups[xid.Group]
+				rm, _ := gm.Resources[xid.Resource]
+
+				if obj["versionscount"] == 1.0 {
+					delete(obj, "ancestorid")
+				}
+
+				if rm.GetMaxVersions() == 1 {
+					delete(obj, rm.Singular+"id")
+					delete(obj, "versionid")
+					delete(obj, "isdefault")
+					delete(obj, "versionscount")
+					delete(obj, "versionsurl")
+					delete(obj, "versions")
+				} else {
+					for attr, _ := range obj {
+						if attr != "meta" && attr != "versions" {
+							delete(obj, attr)
+						}
+					}
+					Error(minimize(obj["versions"]))
+				}
+
+				delete(obj, "metaurl")
+				Error(minimize(obj["meta"]))
+
+			case ENTITY_META:
+				gm, _ := model.Groups[xid.Group]
+				rm, _ := gm.Resources[xid.Resource]
+
+				delete(obj, rm.Singular+"id")
+				delete(obj, "defaultversionurl")
+				if obj["defaultversionsticky"] == false {
+					delete(obj, "defaultversion")
+					delete(obj, "defaultversionsticky")
+				}
+				if obj["readonly"] == false {
+					delete(obj, "readonly")
+				}
+
+			case ENTITY_VERSION:
+				gm, _ := model.Groups[xid.Group]
+				rm, _ := gm.Resources[xid.Resource]
+
+				delete(obj, rm.Singular+"id")
+				delete(obj, "versionid")
+				if obj["isdefault"] == false {
+					delete(obj, "isdefault")
+				}
+
+			default:
+				panic(xidStr)
+			}
+
+			return nil
+		}
+
+		if minimum {
+			Error(minimize(res.JSON))
+			res.Body, err = json.MarshalIndent(res.JSON, "", "  ")
+			Error(err)
+		}
+
 		buf, err := PrettyPrintJSON(res.Body, "", "  ")
 		Error(err, NewXRError("parsing_response", path,
 			"error_detail="+Err2String(err)).

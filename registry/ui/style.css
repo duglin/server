@@ -246,6 +246,54 @@ a.popup-item:hover { background: #f0f4ff; color: #2060a0; }
   background: currentColor;
   border-radius: 1px;
 }
+/* "List view" icon (see viewIconHtml()/bubbleListIconHtml()) — a vertical
+   stack of 3 wide, hollow (outline-only) rounded-rectangle bars with a
+   visible gap between them, evoking a list of rows/bubbles. Used for both
+   the Home Registry tab's List view and the Home "Group Types" page's
+   List view. Deliberately outlined rather than solid-filled bars (that
+   older design looked too similar to the hamburger/kebab menu icon's 3
+   solid short lines — see .hv-hamburger-icon). */
+.hv-list-icon {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 17px;
+  height: 17px;
+}
+.hv-list-icon span {
+  display: block;
+  width: 100%;
+  height: 4px;
+  background: none;
+  border: 1.4px solid currentColor;
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+.popup-icon-list {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 12px;
+  height: 12px;
+}
+.popup-icon-list span {
+  display: block;
+  width: 100%;
+  height: 3px;
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+/* Home "Group Types" page's Table view icon (see viewIconHtml()/
+   gridLinesIconHtml()) — plain sharp-cornered rectangle + gray grid
+   lines, kept visually distinct from the data-section's rounded/shaded
+   spreadsheet 'table' icon (.hv-table-icon above) and from the bubble
+   List view icon above. */
+.hv-gridlines-icon { display: block; }
+.popup-icon-gridlines { display: block; }
 .filter-funnel-icon {
   display: inline-block;
   width: 15px;
@@ -1369,6 +1417,39 @@ body[data-json-color="none"] .json-url:hover { color: #000; }
   user-select: none;
   margin-left: 4px;
 }
+/* "..." button shown in every Home Grid card's top-right corner (see
+   serverCard()/toggleServerCardMenu()) — same look/sizing as the URL
+   value's own "..." Add-xReg menu button (.eg-url-menu-btn), reused here
+   for visual consistency between the two "..." menus. `order: 1` (vs the
+   err/warn badges' default `order: 0`) keeps this button pinned as the
+   rightmost item in the flex `.server-card-title` row regardless of DOM
+   append order — the err/warn badge is only added later, asynchronously,
+   once probeRegistry() resolves (see probeAllCards()), so it must always
+   render to this button's *left* per plan.md, not after it in the DOM. */
+.server-card-menu-btn {
+  display: inline-flex;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  order: 1;
+  margin-left: 4px;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid #999;
+  border-radius: 4px;
+  background: #fafafa;
+  color: #555;
+  font-size: 13px;
+  line-height: 13px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.server-card-menu-btn:hover { background: #eef2fa; border-color: #c8d6ec; color: #2060a0; }
+.popup-icon-refresh-svg { display: block; width: 14px; height: 14px; }
+.popup-icon-star    { font-size: 26px; line-height: 1; }
+.popup-icon-search  { font-size: 12px; line-height: 1; }
+.popup-icon-trash   { font-size: 12px; line-height: 1; }
 .reg-data-warn-banner {
   background: #fff8e1;
   border: 1px solid #d99a00;
@@ -1795,12 +1876,42 @@ tr.cfg-row-drop-after { box-shadow: inset 0 -2px 0 0 #4a90d9; }
   background: white;
   border: 1px solid #ddd;
   border-radius: 10px;
-  padding: 12px 16px;
+  /* Extra right padding (vs 16px on the other 3 sides) reserves room for
+     the absolutely-positioned "..." menu button (.reg-row-menu-btn) so the
+     row's own content (group-type pills / URL in .reg-row-side) never
+     renders underneath it. */
+  padding: 12px 34px 12px 16px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   position: relative;
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 .reg-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-color: #ccc; }
+/* "..." menu button (see toggleServerCardMenu()) pinned to the row's own
+   far top-right corner — unlike the Grid card's equivalent button (which
+   sits inline in its title row, see .server-card-menu-btn), the List row
+   has no dedicated title-row slot for it, so it's absolutely positioned
+   against `.reg-row`'s own `position: relative` instead. */
+.reg-row-menu-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid #999;
+  border-radius: 4px;
+  background: #fafafa;
+  color: #555;
+  font-size: 13px;
+  line-height: 13px;
+  cursor: pointer;
+  vertical-align: middle;
+  z-index: 1;
+}
+.reg-row-menu-btn:hover { background: #eef2fa; border-color: #c8d6ec; color: #2060a0; }
 /* No opacity dimming on the whole row (it would bleed into the absolutely-
    positioned error popup, making it look faded/washed out) — the red
    "Connection failed" badge already communicates the state clearly. */
@@ -1847,20 +1958,6 @@ tr.cfg-row-drop-after { box-shadow: inset 0 -2px 0 0 #4a90d9; }
   white-space: nowrap;
 }
 .reg-row-warn-badge:hover { background: #ffe9a8; }
-.gt-row-warn-badge {
-  font-size: 11px;
-  font-weight: bold;
-  color: #6b5400;
-  background: #fff3cd;
-  border: 1px solid #d99a00;
-  border-radius: 10px;
-  padding: 1px 6px;
-  cursor: pointer;
-  user-select: none;
-  white-space: nowrap;
-  margin-left: 4px;
-}
-.gt-row-warn-badge:hover { background: #ffe9a8; }
 .reg-row-groups {
   display: flex;
   flex-wrap: wrap;
@@ -1985,6 +2082,26 @@ tr.cfg-row-drop-after { box-shadow: inset 0 -2px 0 0 #4a90d9; }
   .gt-row-url { text-align: left; }
 }
 
+/* Table view for the Home "Group Types" page (see renderHomeTypesTable())
+   — reuses the Config page's .config-table/.cfg-sortable/.cfg-sort-arrow
+   look (see style.css above) for a consistent sortable-table appearance
+   app-wide, with a few column-specific tweaks below. */
+.gt-table-icon-th { width: 32px; }
+/* Count column (3rd) is centered in both header and data cells — the
+   header itself isn't reachable via a dedicated class (it's built by the
+   shared gtSortHeaderHTML(), same as the Config page's cfgSortHeaderHTML()),
+   so this targets it positionally instead. */
+.gt-table th:nth-child(3) { text-align: center; }
+.gt-table-icon-cell { width: 32px; }
+.gt-table-icon-cell img { display: block; }
+.gt-table-name { font-weight: bold; }
+.gt-table-count { text-align: center; }
+.gt-table-registry { cursor: pointer; }
+.gt-table-registry:hover { color: #2255cc; text-decoration: underline; }
+.gt-table-resources {
+  white-space: normal;
+}
+
 /* ============================================================
    Entity grid view — removed (Grid view no longer exists for any
    entity/collection page; List view is the only option — see plan.md
@@ -2103,17 +2220,18 @@ tr.cfg-row-drop-after { box-shadow: inset 0 -2px 0 0 #4a90d9; }
    just be visually cropped rather than an actual clickable button. */
 .eg-url-menu-btn {
   display: inline-flex;
-  align-items: center;
   justify-content: center;
   width: 18px;
   height: 18px;
   margin-left: 2px;
-  border: 1px solid #ccc;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid #999;
   border-radius: 4px;
   background: #fafafa;
-  color: #888;
+  color: #555;
   font-size: 13px;
-  line-height: 1;
+  line-height: 13px;
   cursor: pointer;
   vertical-align: middle;
 }
