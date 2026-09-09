@@ -1856,79 +1856,39 @@ func (r *RunResult) Kill() *RunResult {
 	return r
 }
 
-func Dir(path string, flags ...string) ([]string, error) {
-	type Entry struct {
-		path       string
-		name       string
-		createdat  time.Time
-		modifiedat time.Time
-		size       int
-		isdir      bool
-		children   map[string]*Entry
-	}
+type DirIteratorFn func(string, os.DirEntry) bool
 
-	root := path
-	if root != "" && root[len(root)-1] != '/' {
+func DirIterator(root string, fn DirIteratorFn, recurse bool) error {
+	if len(root) == 0 || root[len(root)-1] != '/' {
 		root += "/"
 	}
-	files := map[string]*Entry{}
 
-	traverse := (func(path string, de os.DirEntry) error)(nil)
-	traverse = func(path string, de os.DirEntry) error {
-		var dirEntries []os.DirEntry
-		var err error
+	var dirIter func(p string, fn DirIteratorFn) (bool, error)
 
-		if de == nil {
-			dirEntries, err = os.ReadDir(path)
-			path = ""
-		} else {
-			dirEntries, err = os.ReadDir(root + path + de.Name())
-			path = path + de.Name()
-		}
+	dirIter = func(path string, fn DirIteratorFn) (bool, error) {
+		dirEntries, err := os.ReadDir(root + path)
 		if err != nil {
-			return err
-		}
-
-		if path != "" {
-			path += "/"
+			return false, err
 		}
 
 		for _, de := range dirEntries {
-			if !de.IsDir() {
-				e := &Entry{
-					path:  path,
-					name:  de.Name(),
-					isdir: false,
+			name := de.Name()
+			if path != "" {
+				name = path + "/" + name
+			}
+			if fn(name, de) == false {
+				return false, nil
+			}
+			if recurse && de.IsDir() {
+				keepGoing, err := dirIter(name, fn)
+				if !keepGoing || err != nil {
+					return keepGoing, err
 				}
-				info, err := de.Info()
-				if err != nil {
-					return err
-				}
-				e.size = int(info.Size())
-				e.modifiedat = info.ModTime()
-
-				suffix := ""
-				if e.size == 0 {
-					suffix = " (empty)"
-				}
-
-				files[path+de.Name()+suffix] = e
-			} else {
-				e := &Entry{
-					path:  path,
-					name:  de.Name(),
-					isdir: true,
-				}
-				files[path+de.Name()+"/"] = e
-				traverse(path, de)
 			}
 		}
-		return nil
+		return true, nil
 	}
 
-	if err := traverse(path, nil); err != nil {
-		return nil, err
-	}
-	list := SortedKeys(files)
-	return list, nil
+	_, err := dirIter("", fn)
+	return err
 }

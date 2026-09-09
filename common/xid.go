@@ -39,6 +39,12 @@ const (
 	ENTITY_VERSION_TYPE
 )
 
+func (xid *Xid) Clone() *Xid {
+	newXID := &Xid{}
+	*newXID = *xid
+	return newXID
+}
+
 func ParseXidType(xidTypeStr string) (*XidType, error) {
 	xidTypeStr = strings.TrimSpace(xidTypeStr)
 	if xidTypeStr == "" {

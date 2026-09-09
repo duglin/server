@@ -125,4 +125,3 @@ TODOs:
 ** support "xr upload"
 ** see what it would take to support a registry proxy (at the group level) that
    would expose lots of registries as a single one.
-** add table view to UI for group types view

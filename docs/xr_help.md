@@ -71,7 +71,7 @@ xr download DIR [XID...]
       --md2html-header string     HTML to add in <head> (data,@FILE,@URL,@-)
       --md2html-html string       HTML to add after <head> (data,@FILE,@URL,@-)
       --md2html-no-style          Do not add default styling to html files
-  -m, --min                       Minimize the data (e.g. no collection json)
+      --min                       Minimize the data (e.g. no collection json)
       --nodiff strings            No-diff attrs: *,epoch,createdat,modifiedat
   -p, --parallel int              Number of items to download in parallel (10*)
   -s, --server string             xRegistry server URL
@@ -88,6 +88,7 @@ xr get [XID]
   -f, --filter stringArray   Filter: expr[,expr]
   -?, --help                 Help for xr
   -i, --inline stringArray   Inline entities: *, ...
+      --min                  Minimize the data (e.g. no *url attributes)
   -o, --output string        Output format: json*, table
   -s, --server string        xRegistry server URL
   -v, --verbose              Be chatty

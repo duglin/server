@@ -479,7 +479,7 @@ func (td *TD) MustEqual(exp any, got any, args ...any) {
 		nTD := NewTD(td, args...)
 		nTD.Log("Exp(%T): %s", exp, expJSON)
 		nTD.Log("Got(%T): %s", got, gotJSON)
-		nTD.Log("Diff(exp/got): %s", Diff(expJSON, gotJSON))
+		nTD.Log("Diff(exp/got): %s", Diff("Exp", expJSON, "Got", gotJSON))
 		nTD.Fail()
 		// nTD.FailNow()
 		// td.Fail(args...)
@@ -488,7 +488,7 @@ func (td *TD) MustEqual(exp any, got any, args ...any) {
 	td.Pass(args...)
 }
 
-func Diff(exp string, got string) string {
+func oldDiff(exp string, got string) string {
 	expPos, gotPos := 0, 0
 	expLen, gotLen := len(exp), len(got)
 
@@ -1281,7 +1281,7 @@ func (td *TD) ObjCheck(obj map[string]any, attr string, args ...any) {
 		attrJSON := ToJSON(attrAny)
 		nestedTD.Log("Exp(%T): %s", expAny, expJSON)
 		nestedTD.Log("Got(%T): %s", attrAny, attrJSON)
-		nestedTD.Log("Diff(exp/got): %s", Diff(expJSON, attrJSON))
+		nestedTD.Log("Diff(exp/got): %s", Diff("Exp", expJSON, "Got", attrJSON))
 		nestedTD.Fail()
 	}
 
