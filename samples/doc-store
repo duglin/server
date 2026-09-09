@@ -8,7 +8,7 @@
 docker run --name xrserver -dti -p 8080:8080 ghcr.io/xregistry/xrserver-all
 
 # Point to this server
-XR_SERVER=localhost:8080
+XR_SERVER=localhost:8080/xreg
 
 # Wait for the server to be ready before we continue
 while ! xr get > /dev/null 2>&1 ; do sleep 1 ; done
@@ -23,5 +23,5 @@ xr create dirs/mydocs/files/file1 --data "this is mydocs/file1"
 xr create dirs/mydocs/files/file2 --data "this is mydocs/file2"
 xr create dirs/yourdocs/files/cv --data "my very cool job experience info"
 
-# Then go to: http://localhost:8080?ui to explore
+# Then go to: http://localhost:8080/ui to explore
 # Or stop and delete the server: docker rm -f xrserver

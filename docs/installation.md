@@ -22,9 +22,9 @@ $ docker run -ti -p 8080:8080 ghcr.io/xregistry/xrserver-all -vv --samples
 This will start the xRegistry server, along with a MySQL DB, and load some
 sample data into the Registry.
 
-You can then access it via: `http://localhost:8080` for API (e.g. `curl`)
-access or use: `http://localhost:8080?ui` with your favorite browser to
-examine the sample data.
+You can then access it via: `http://localhost:8080/xreg` for API (e.g. `curl`)
+access or use: `http://localhost:8080/ui` with your favorite browser to
+examine the sample data via an xRegistry browser-app.
 
 ## Command Line
 

@@ -8,8 +8,9 @@ The main mailing list for e-mail communications:
 - To subscribe see: https://lists.cncf.io/g/cncf-xregistry
 - Archives are at: https://lists.cncf.io/g/cncf-xregistry/topics
 
-And a #xregistry Slack channel under
-[CNCF's Slack workspace](http://slack.cncf.io/).
+And a
+<a href="https://cloud-native.slack.com/archives/C03GJK3MCMD">#xregistry</a>
+Slack channel under [CNCF's Slack workspace](http://slack.cncf.io/).
 
 ## Security Concerns
 

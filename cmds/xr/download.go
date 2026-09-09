@@ -48,20 +48,28 @@ func addDownloadCmd(parent *cobra.Command) {
 		Short:   `Download entities from registry as individual files`,
 		Run:     downloadFunc,
 		GroupID: "Entities",
+
 		Annotations: map[string]string{
 			"usage": `
 Notes:
   - XID may also include the following:
-    /capabilities /capabilitiesoffered /export /model /modelsource (or --all)`,
+    /capabilities /capabilitiesoffered /export /model /modelsource (or --all)
+  - The primary use case is to download the files for use in a static file/web
+     server. This is why the --index flag defaults to "index.html".
+  - Use --min to minimize the number of files created by removing xRegistry
+    static data and removing duplicate information. Primary use case is for
+    storing the files in a repository for manual edits. The default --index
+    value will be changed from "index.html" to "document".`,
 		},
 	}
+
 	downloadCmd.Flags().BoolP("all", "a", false,
 		"Download all data (e.g. export, model)")
 	downloadCmd.Flags().StringP("url", "u", "",
 		"Host/path to update xRegistry paths")
 	downloadCmd.Flags().BoolP("import", "", false,
 		"Create '/import.json' based on /export")
-	downloadCmd.Flags().StringP("index", "i", "index.html",
+	downloadCmd.Flags().StringP("index", "i", "",
 		"Directory index file name (index.html*)")
 	downloadCmd.Flag("index").DefValue = "" // hide default text
 	downloadCmd.Flags().BoolP("md2html-no-style", "", false,
@@ -135,6 +143,10 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 	}
 
 	indexFile, _ := cmd.Flags().GetString("index")
+	if indexFile == "" {
+		indexFile = "index.html"
+	}
+
 	host, _ := cmd.Flags().GetString("url")
 	modCap, _ := cmd.Flags().GetBool("capabilities")
 	noDiff, _ := cmd.Flags().GetStringSlice("nodiff")

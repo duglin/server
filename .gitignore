@@ -15,6 +15,7 @@
 /.test
 /.utest
 /.qtest
+/.ftest
 /.fulltest
 /.images
 /.testimages
