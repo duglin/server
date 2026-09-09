@@ -144,7 +144,11 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 
 	indexFile, _ := cmd.Flags().GetString("index")
 	if indexFile == "" {
-		indexFile = "index.html"
+		if minimal {
+			indexFile = "document"
+		} else {
+			indexFile = "index.html"
+		}
 	}
 
 	host, _ := cmd.Flags().GetString("url")

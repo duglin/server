@@ -3899,7 +3899,7 @@ content-type: application/json
 }
 # dirs/d1/files/f1/versions/
 # dirs/d1/files/f1/versions/v1/
-# dirs/d1/files/f1/versions/v1/index.html
+# dirs/d1/files/f1/versions/v1/document
 hi
 # dirs/d1/files/f1/versions/v1$details
 {
@@ -3912,14 +3912,14 @@ hi
 }
 # dirs/d1/files/f2/versions/
 # dirs/d1/files/f2/versions/v1/
-# dirs/d1/files/f2/versions/v1/index.html
+# dirs/d1/files/f2/versions/v1/document
 hi
 # dirs/d1/files/f2/versions/v1$details
 {
   "ancestorid": "v1"
 }
 # dirs/d1/files/f2/versions/v2/
-# dirs/d1/files/f2/versions/v2/index.html
+# dirs/d1/files/f2/versions/v2/document
 hi
 # dirs/d1/files/f2/versions/v2$details
 {
@@ -3932,7 +3932,7 @@ hi
 }
 # dirs/d1/files/f3.md/versions/
 # dirs/d1/files/f3.md/versions/v1/
-# dirs/d1/files/f3.md/versions/v1/index.html
+# dirs/d1/files/f3.md/versions/v1/document
 
 # A header
 
@@ -4005,11 +4005,11 @@ and some text
   "ancestorid": "v1"
 }
 # dirs/d2/
-# dirs/d2/index.html
+# dirs/d2/document
 {
   "name": "med2"
 }
-# index.html
+# document
 {
   "name": "mereg"
 }
