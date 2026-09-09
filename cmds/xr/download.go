@@ -111,6 +111,12 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 	Error(xErr)
 
 	dir := args[0]
+
+	if dir == "/" {
+		Error(NewXRError("client_error", dir,
+			"error_detail=Can't use '/' as the dir for safety. Use '/./' to force it"))
+	}
+
 	stat, err := os.Stat(dir)
 	if os.IsNotExist(err) || !stat.IsDir() {
 		Error(NewXRError("client_error", dir,
@@ -678,86 +684,90 @@ func downloadFunc(cmd *cobra.Command, args []string) {
 					}
 				}
 
-				if md2html && strings.HasSuffix(xid.ResourceID, ".md") {
-					// Use versionid as base filename, not resourceid
-					fn = root + xid.String() + ".html"
-					html := bytes.Buffer{}
+				// For now don't generate the version's html file because
+				// the relative links only work when it's at the Resource level
+				/*
+					if md2html && strings.HasSuffix(xid.ResourceID, ".md") {
+						// Use versionid as base filename, not resourceid
+						fn = root + xid.String() + ".html"
+						html := bytes.Buffer{}
 
-					// Header, if needed
-					header := ""
+						// Header, if needed
+						header := ""
 
-					if !md2htmlNoStyle {
-						header += "<style>\n" +
-							"  .anchor {\n" +
-							"    font-size: 12px ;\n" +
-							"    vertical-align: middle ;\n" +
-							"    text-decoration: none ;\n" +
-							"  }\n" +
-							"  body {\n" +
-							"    font-family: sans-serif ;\n" +
-							"    font-size: 16px ;\n" +
-							"    line-height: 1.5 ;\n" +
-							"    padding: 5% 10% 5% 10% ;\n" +
-							"  }\n" +
-							"  pre {\n" +
-							"    font-size: 80% ;\n" +
-							"    background-color: #f2f2f2 ;\n" +
-							"    padding: 12px ;\n" +
-							"  }\n" +
-							"  code {\n" +
-							"    font-size: 85% ;\n" +
-							"    background-color: #f2f2f2 ;\n" +
-							"    padding: .2em .4em ;\n" +
-							"  }\n" +
-							"  pre code {\n" +
-							"    font-size: inherit ;\n" +
-							"    background-color: inherit ;\n" +
-							"    padding: 0px ;\n" +
-							"  }\n" +
-							"  table {\n" +
-							"    border: 1px solid lightgray ;\n" +
-							"    border-collapse: collapse ;\n" +
-							"    border-spacing: 0px ;\n" +
-							"    line-height: 24px ;\n" +
-							"  }\n" +
-							"  tr:nth-child(even) {\n" +
-							"    background-color: #f2f2f2 ;\n" +
-							"  }\n" +
-							"  td,th {\n" +
-							"    border: 1px solid lightgray ;\n" +
-							"    padding: 5px ;\n" +
-							"  }\n" +
-							"  td code, th code {\n" +
-							"    font-size: inherit ;\n" +
-							"  }\n" +
-							"</style>\n"
-					}
-					if md2htmlLink != "" {
-						header += `<link rel="stylesheet" href="` +
-							md2htmlLink + `">` + "\n"
-					}
-					if md2htmlHeader != "" {
-						header += md2htmlHeader + "\n"
-					}
-					if header != "" {
-						html.Write([]byte("<head>\n" + header +
-							"\n</head>\n"))
-					}
-
-					// Custom HTML after <head>
-					if md2htmlHTML != "" {
-						html.Write([]byte(md2htmlHTML))
-						if md2htmlHTML[len(md2htmlHTML)-1] != '\n' {
-							html.Write([]byte("\n"))
+						if !md2htmlNoStyle {
+							header += "<style>\n" +
+								"  .anchor {\n" +
+								"    font-size: 12px ;\n" +
+								"    vertical-align: middle ;\n" +
+								"    text-decoration: none ;\n" +
+								"  }\n" +
+								"  body {\n" +
+								"    font-family: sans-serif ;\n" +
+								"    font-size: 16px ;\n" +
+								"    line-height: 1.5 ;\n" +
+								"    padding: 5% 10% 5% 10% ;\n" +
+								"  }\n" +
+								"  pre {\n" +
+								"    font-size: 80% ;\n" +
+								"    background-color: #f2f2f2 ;\n" +
+								"    padding: 12px ;\n" +
+								"  }\n" +
+								"  code {\n" +
+								"    font-size: 85% ;\n" +
+								"    background-color: #f2f2f2 ;\n" +
+								"    padding: .2em .4em ;\n" +
+								"  }\n" +
+								"  pre code {\n" +
+								"    font-size: inherit ;\n" +
+								"    background-color: inherit ;\n" +
+								"    padding: 0px ;\n" +
+								"  }\n" +
+								"  table {\n" +
+								"    border: 1px solid lightgray ;\n" +
+								"    border-collapse: collapse ;\n" +
+								"    border-spacing: 0px ;\n" +
+								"    line-height: 24px ;\n" +
+								"  }\n" +
+								"  tr:nth-child(even) {\n" +
+								"    background-color: #f2f2f2 ;\n" +
+								"  }\n" +
+								"  td,th {\n" +
+								"    border: 1px solid lightgray ;\n" +
+								"    padding: 5px ;\n" +
+								"  }\n" +
+								"  td code, th code {\n" +
+								"    font-size: inherit ;\n" +
+								"  }\n" +
+								"</style>\n"
 						}
+						if md2htmlLink != "" {
+							header += `<link rel="stylesheet" href="` +
+								md2htmlLink + `">` + "\n"
+						}
+						if md2htmlHeader != "" {
+							header += md2htmlHeader + "\n"
+						}
+						if header != "" {
+							html.Write([]byte("<head>\n" + header +
+								"\n</head>\n"))
+						}
+
+						// Custom HTML after <head>
+						if md2htmlHTML != "" {
+							html.Write([]byte(md2htmlHTML))
+							if md2htmlHTML[len(md2htmlHTML)-1] != '\n' {
+								html.Write([]byte("\n"))
+							}
+						}
+
+						// Do the actual conversion from md->html
+						md.Convert(data, &html)
+						html.Write([]byte("\n</html>\n"))
+
+						Error(os.WriteFile(fn, html.Bytes(), 0644))
 					}
-
-					// Do the actual conversion from md->html
-					md.Convert(data, &html)
-					html.Write([]byte("\n</html>\n"))
-
-					Error(os.WriteFile(fn, html.Bytes(), 0644))
-				}
+				*/
 			} else {
 				if !minimal && len(obj) > 0 {
 					fn := root + xid.String() + "/" + indexFile
