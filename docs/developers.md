@@ -10,7 +10,7 @@ welcome from anyone.
 
 - Wrap lines at 80 columns (or try hard)
 - `gofmt` all go files
-- If it feels like it's taking too long code something, or the code you're
+- If it feels like it's taking too long to code something, or the code you're
   writing feels more complex/harder than it should be, stop and ask the team
   about it. There may be a simple way to do what you're trying to do and it's
   better to ask a question than to waste your time rat-holing. Use the
@@ -21,7 +21,7 @@ welcome from anyone.
 
 - Tests should check the expected output byte-for-byte. We want to make sure
   that every character (even spaces) are exactly as we expect. So, avoid
-  expected outputs of "*" and regular expressions (ie. one- that start with
+  expected outputs of `"*"` and regular expressions (ie. ones that start with
   `^`).
 - There may be times when that rule is too strict due to output varying too
   much across runs/environments - try to use masking first, but as a last
@@ -70,10 +70,10 @@ the packages listed on the `RUN apk add` command.
 | `make clean`        | Erase all build outputs, clean docker |
 | `make all`          | Build all, run test and start server (reset DB) |
 | `make run`          | Build and start server (no tests, reset DB) |
-| `make start`        | Build and start seerver (no tests, keep DB) |
+| `make start`        | Build and start server (no tests, keep DB) |
 | `make test`         | Build all & run all tests |
 | `make qtest`        | Build all & run just main tests |
-| `make benchmark`    | Run some basic speed bencharks (ftest/largeload) |
+| `make benchmark`    | Run some basic speed benchmarks (ftest/largeload) |
 | `make xr`           | Build `xr` CLI only |
 | `make xrserver`     | Build `xrserver` executable only |
 | `make cmds`         | Build all executables (`xrserver` and` xr`) |

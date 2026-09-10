@@ -5,10 +5,10 @@ set -e
 # This will upload all openapi docs in github.com/APIs-guru/openapi-directory
 # 
 # Start xRegistry: docker run -ti -p 8080:8080 ghcr.io/xregistry/xrserver-all
-# Point to it:     set XR_SERVER=localhost:8080
+# Point to it:     set XR_SERVER=localhost:8080/xreg
 # Run this script: ./APIs-guru-openapi
 
-XR_SERVER=${XR_SERVER:-localhost:8080}
+XR_SERVER=${XR_SERVER:-localhost:8080/xreg}
 
 # Define the model (1 group type with 1 resource type)
 xr model group create providers:provider

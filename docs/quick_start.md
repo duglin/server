@@ -8,14 +8,14 @@ $ docker run -ti -p 8080:8080 ghcr.io/xregistry/xrserver-all --samples
 ```
 
 > Note: the `--samples` flag will preload a set of sample Registries for you to
-> explore. See the `Loading: /...` lines of the output to see each Registry's
+> explore. See the `Loading: ...` lines of the output to see each Registry's
 > URL path. Leave this option off to run with an empty Registry.
 
 When ready, the API server will be available at: `http://localhost:8080` by
 any HTTP client, such as `curl`:
 
 ```yaml
-$ curl localhost:8080
+$ curl localhost:8080/xreg     # get the Root of the default Registry
 
 {
   "specversion": "1.0-rc4",
@@ -31,6 +31,7 @@ $ curl localhost:8080
 But, of course, the `xr` CLI is an easier option:
 
 ```yaml
+$ export XR_SERVER=localhost:8080/xreg  # or use -s option on 'xr'
 $ xr get
 
 {

@@ -8,7 +8,7 @@
 docker run --name xrserver -dti -p 8080:8080 ghcr.io/xregistry/xrserver-all
 
 # Point to this server
-XR_SERVER=localhost:8080
+XR_SERVER=localhost:8080/xreg
 
 # Wait for the server to be ready before we continue
 while ! xr get > /dev/null 2>&1 ; do sleep 1 ; done
@@ -20,5 +20,5 @@ xr model update -d @https://raw.githubusercontent.com/xregistry/spec/refs/heads/
 
 xr import -d @https://raw.githubusercontent.com/xregistry/spec/refs/heads/main/cloudevents/samples/scenarios/contoso-erp-jsons07.xreg.json
 
-# Then go to: http://localhost:8080?ui to explore
+# Then go to: http://localhost:8080/ui to explore
 # Or stop and delete the server: docker rm -f xrserver

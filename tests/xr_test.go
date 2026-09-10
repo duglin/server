@@ -3504,58 +3504,6 @@ xregistry-modifiedat:2026-09-09T19:19:35.924001305Z
 xregistry-self:dirs/d1/files/f3.md/versions/v1
 xregistry-versionid:v1
 xregistry-xid:/dirs/d1/files/f3.md/versions/v1
-# dirs/d1/files/f3.md/versions/v1.html
-<head>
-<style>
-  .anchor {
-    font-size: 12px ;
-    vertical-align: middle ;
-    text-decoration: none ;
-  }
-  body {
-    font-family: sans-serif ;
-    font-size: 16px ;
-    line-height: 1.5 ;
-    padding: 5% 10% 5% 10% ;
-  }
-  pre {
-    font-size: 80% ;
-    background-color: #f2f2f2 ;
-    padding: 12px ;
-  }
-  code {
-    font-size: 85% ;
-    background-color: #f2f2f2 ;
-    padding: .2em .4em ;
-  }
-  pre code {
-    font-size: inherit ;
-    background-color: inherit ;
-    padding: 0px ;
-  }
-  table {
-    border: 1px solid lightgray ;
-    border-collapse: collapse ;
-    border-spacing: 0px ;
-    line-height: 24px ;
-  }
-  tr:nth-child(even) {
-    background-color: #f2f2f2 ;
-  }
-  td,th {
-    border: 1px solid lightgray ;
-    padding: 5px ;
-  }
-  td code, th code {
-    font-size: inherit ;
-  }
-</style>
-
-</head>
-<h1 id="a-header">A header <a class="anchor" href="#a-header">🔗</a></h1>
-<p>and some text</p>
-
-</html>
 # dirs/d1/files/f3.md$details
 {
   "ancestorid": "v1",
@@ -3899,7 +3847,7 @@ content-type: application/json
 }
 # dirs/d1/files/f1/versions/
 # dirs/d1/files/f1/versions/v1/
-# dirs/d1/files/f1/versions/v1/index.html
+# dirs/d1/files/f1/versions/v1/document
 hi
 # dirs/d1/files/f1/versions/v1$details
 {
@@ -3912,14 +3860,14 @@ hi
 }
 # dirs/d1/files/f2/versions/
 # dirs/d1/files/f2/versions/v1/
-# dirs/d1/files/f2/versions/v1/index.html
+# dirs/d1/files/f2/versions/v1/document
 hi
 # dirs/d1/files/f2/versions/v1$details
 {
   "ancestorid": "v1"
 }
 # dirs/d1/files/f2/versions/v2/
-# dirs/d1/files/f2/versions/v2/index.html
+# dirs/d1/files/f2/versions/v2/document
 hi
 # dirs/d1/files/f2/versions/v2$details
 {
@@ -3932,7 +3880,7 @@ hi
 }
 # dirs/d1/files/f3.md/versions/
 # dirs/d1/files/f3.md/versions/v1/
-# dirs/d1/files/f3.md/versions/v1/index.html
+# dirs/d1/files/f3.md/versions/v1/document
 
 # A header
 
@@ -3941,58 +3889,6 @@ and some text
 {
   "ancestorid": "v1"
 }
-# dirs/d1/files/f3.md/versions/v1.html
-<head>
-<style>
-  .anchor {
-    font-size: 12px ;
-    vertical-align: middle ;
-    text-decoration: none ;
-  }
-  body {
-    font-family: sans-serif ;
-    font-size: 16px ;
-    line-height: 1.5 ;
-    padding: 5% 10% 5% 10% ;
-  }
-  pre {
-    font-size: 80% ;
-    background-color: #f2f2f2 ;
-    padding: 12px ;
-  }
-  code {
-    font-size: 85% ;
-    background-color: #f2f2f2 ;
-    padding: .2em .4em ;
-  }
-  pre code {
-    font-size: inherit ;
-    background-color: inherit ;
-    padding: 0px ;
-  }
-  table {
-    border: 1px solid lightgray ;
-    border-collapse: collapse ;
-    border-spacing: 0px ;
-    line-height: 24px ;
-  }
-  tr:nth-child(even) {
-    background-color: #f2f2f2 ;
-  }
-  td,th {
-    border: 1px solid lightgray ;
-    padding: 5px ;
-  }
-  td code, th code {
-    font-size: inherit ;
-  }
-</style>
-
-</head>
-<h1 id="a-header">A header <a class="anchor" href="#a-header">🔗</a></h1>
-<p>and some text</p>
-
-</html>
 # dirs/d1/ones/
 # dirs/d1/ones/o1/
 # dirs/d1/ones/o1/meta
@@ -4005,11 +3901,11 @@ and some text
   "ancestorid": "v1"
 }
 # dirs/d2/
-# dirs/d2/index.html
+# dirs/d2/document
 {
   "name": "med2"
 }
-# index.html
+# document
 {
   "name": "mereg"
 }
