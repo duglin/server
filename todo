@@ -122,6 +122,6 @@ TODOs:
 ** change --set (for config setting) to something else so xr can use it too
 ** pretty-printer to have json match spec - js and golang (registry and model)
 ** make loader.go use APIs
-** support "xr upload"
+** support "xr upload", upload files from a dir
 ** see what it would take to support a registry proxy (at the group level) that
    would expose lots of registries as a single one.

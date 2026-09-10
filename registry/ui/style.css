@@ -393,19 +393,14 @@ a.popup-item:hover { background: #f0f4ff; color: #2060a0; }
 .icon-btn.active { background: #2060a0; color: white; border-color: #2060a0; }
 .icon-sym { font-size: 24px; line-height: 1; }
 #more-menu-btn { height: 28px; }
-.hv-hamburger-icon {
-  display: inline-flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 20px;
-  height: 15px;
-}
-.hv-hamburger-icon span {
-  display: block;
-  height: 2.5px;
-  background: currentColor;
-  border-radius: 1px;
-}
+/* "Menu" (hamburger) button icon — 3 horizontal lines of identical
+   thickness, with a small filled circle/bubble on the 1st and 3rd lines
+   (2nd line left plain) to evoke a slider/options control rather than a
+   plain list — kept visually distinct from the "List view" bubble icon
+   (.hv-list-icon below), which uses 3 wide hollow rounded-rect bars
+   instead of thin lines+knobs. Rendered as an SVG (not span-based bars)
+   so all 3 lines share the exact same stroke-width/height. */
+.hv-hamburger-icon { display: block; width: 20px; height: 20px; }
 
 /* Copy-API-URL button, appended after the last breadcrumb segment */
 .bc-copy-btn { margin-left: 8px; padding: 4px 6px; flex-shrink: 0; }

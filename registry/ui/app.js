@@ -1101,6 +1101,16 @@ function getSiblingContext() {
           cb(items);
         },
         navigate: function(item) {
+          // onVersionSelectChange()/onVersionSelectChangeReal() normally run
+          // as a result of the "Version:" dropdown's own onchange (the
+          // browser already updated its displayed value before that fires)
+          // — calling them from here directly, bypassing the actual
+          // <select>, needs this same extra sync step verTabRowClick() uses
+          // for the Versions List tab's row-click, otherwise the dropdown
+          // keeps showing the previously-selected version even though the
+          // page content below it did update.
+          var sel = document.getElementById('eg-doc-version-select');
+          if (sel) sel.value = item.key;
           onVersionSelectChange(item.key, true);
         }
       }
